@@ -50,10 +50,9 @@ Not claimed publicly: lot-by-lot traceability through the platform was offered a
 
 ## Capabilities and Constraints
 
-- Contact on the page: **email and phone only** (confirmed). No contact form, no WhatsApp, no mail backend.
+- Contact on the page: **email only** (phone removed 5/nov/2026 at the owner's request). No contact form, no WhatsApp, no mail backend.
 - Contact shown on the site (from the company's official forms):
   - propesaseafood@gmail.com
-  - Tel. 646 596 0833
 - **Not shown online** (confirmed 2/nov/2026): the company's street address and its R.F.C. Location is stated only as Ensenada, Baja California.
 - **Staff sign-in:** a sign-in link at the top right goes to the platform, which stays as it is. No platform features, screenshots or description on the site.
 - No prices, no ordering, no client portal on the site.
@@ -78,10 +77,12 @@ Not claimed publicly: lot-by-lot traceability through the platform was offered a
 
 1. **Only what is true, and only what is public.** Every claim on the page maps to a confirmed fact above; anything else is left out until the user confirms it. No street address, R.F.C., cities, suppliers or clients online: regions and "Ensenada, Baja California" are enough.
 2. **One page, three audiences.** A buyer, a cooperative and a maquila client should each find, quickly, what PROPESA offers them.
-3. **Getting in touch is the point.** Email and phone are always easy to find and work with one tap on a phone.
+3. **Getting in touch is the point.** Email is always easy to find and work with one tap on a phone.
 4. **The real place, the real product.** PROPESA's own photos and logo carry the page; nothing stands in for them.
 5. **The website and the internal platform stay separate.** The site does not advertise or describe the platform; staff reach it through the sign-in link at the top right.
 
 ## Accessibility & Inclusion
+
+Phone-number detection is off (`format-detection`) so iOS does not turn sizes like 851–1220 g into call links.
 
 WCAG 2.1 AA, carried over from the platform's rule (contrast 4.5:1 for text, 44 px touch targets, visible focus, respects reduced motion). Many visitors will open it on a phone, some on slow mobile data.

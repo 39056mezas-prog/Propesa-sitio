@@ -1,14 +1,7 @@
 // PROPESA · sitio público
 (function () {
-  var raiz = document.documentElement;
-  var quieto = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var observa = 'IntersectionObserver' in window;
-  if (!quieto && observa) raiz.classList.add('js');
-
   document.addEventListener('DOMContentLoaded', function () {
-    var portada = document.querySelector('.portada');
     var cabecera = document.querySelector('.cabecera');
-
 
     // Cabecera transparente sobre el mapa, sólida al bajar.
     if (cabecera) {

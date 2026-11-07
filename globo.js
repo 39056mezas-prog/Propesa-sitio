@@ -41,7 +41,7 @@
     var portada = document.querySelector('.portada');
     var rutas = DEST.map(function (d) { return arco(ENS, d.p, 140); });
     var vista = { lon: INICIO.lon, lat: INICIO.lat, vlon: 0, vlat: 0 };
-    var arrastre = null, ultimoToque = -1e9, t0 = performance.now(), visible = true, listo = false;
+    var arrastre = null, ultimoToque = -1e9, t0 = performance.now(), visible = true, listo = false, perdido = false, clave = '';
     var W = 0, H = 0, dpr = 1, R = 0, cx = 0, cy = 0;
     function tocado() { if (portada) portada.classList.add('tocado'); }
 
@@ -99,11 +99,20 @@
         listo = true; caja.classList.add('vivo');
       };
       img.src = caja.getAttribute('data-textura');
+      // El teléfono puede quitarle el 3D a la página (poca memoria, al volver de otra app): regresa la foto fija y el globo deja de girar,
+      // igual que en un equipo sin 3D. Antes quedaban las rutas flotando sobre el fondo, sin la Tierra.
+      lienzo.addEventListener('webglcontextlost', function (e) {
+        e.preventDefault(); perdido = true; listo = false; arrastre = null;
+        vista.lon = INICIO.lon; vista.lat = INICIO.lat; vista.vlon = vista.vlat = 0;
+        caja.classList.remove('vivo'); caja.classList.remove('arrastrando'); caja.classList.add('sin-gl'); caja.removeAttribute('tabindex');
+        if (portada) portada.classList.add('sin-gl');
+      });
     }
 
     // --- tamaño ---
     function medir() {
       var r = caja.getBoundingClientRect();
+      clave = '';   // cambiar el tamaño del lienzo lo borra: hay que volver a dibujar
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       W = r.width; H = r.height; R = Math.min(W, H) / 2 * 0.86; cx = W / 2; cy = H / 2;
       [lienzo, capa].forEach(function (c) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); });
@@ -195,7 +204,7 @@
     function cuadro(ahora) {
       if (visible) {
         var t = ahora - t0;
-        if (!arrastre) {
+        if (!arrastre && gl && !perdido) {   // sin 3D la foto fija no gira: las rutas se quedan sobre ella
           vista.lon += vista.vlon; vista.lat += vista.vlat;
           vista.vlon *= 0.94; vista.vlat *= 0.94;
           if (Math.abs(vista.vlon) < 0.002) vista.vlon = 0;
@@ -208,6 +217,10 @@
           }
           limitar();
         }
+        // Con «Reducir movimiento» no hay animaciones: se dibuja solo si algo cambió (antes, 60 veces por segundo).
+        var k = quieto ? [vista.lon, vista.lat, W, H, dpr, listo].join() : '';
+        if (quieto && k === clave) { requestAnimationFrame(cuadro); return; }
+        clave = k;
         if (gl && listo) {
           gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
           gl.uniform2f(U.c, cx * dpr, lienzo.height - cy * dpr);
@@ -223,7 +236,7 @@
     // --- arrastre (ratón, dedo y teclado) ---
     if (gl) {
       caja.addEventListener('pointerdown', function (e) {
-        if (e.button > 0) return;
+        if (e.button > 0 || perdido) return;
         arrastre = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
         vista.vlon = vista.vlat = 0; ultimoToque = performance.now();
         caja.classList.add('arrastrando'); tocado();
@@ -246,7 +259,7 @@
       caja.addEventListener('pointercancel', soltar);
       caja.addEventListener('keydown', function (e) {
         var paso = { ArrowLeft: [-4, 0], ArrowRight: [4, 0], ArrowUp: [0, 3], ArrowDown: [0, -3] }[e.key];
-        if (!paso) return;
+        if (!paso || perdido) return;
         e.preventDefault(); vista.vlon = paso[0] * .12; vista.vlat = paso[1] * .12; ultimoToque = performance.now();
         if ((vista.lon <= LIM.lon[0] && paso[0] < 0) || (vista.lon >= LIM.lon[1] && paso[0] > 0)) vista.vlon = 0;
         if ((vista.lat <= LIM.lat[0] && paso[1] < 0) || (vista.lat >= LIM.lat[1] && paso[1] > 0)) vista.vlat = 0;

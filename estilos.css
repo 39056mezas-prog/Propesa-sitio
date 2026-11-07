@@ -133,8 +133,6 @@ a { color: inherit; }
 .boton svg { width: 20px; height: 20px; flex: none; }
 .boton-azul { background: var(--azul-boton); color: #fff; box-shadow: 0 12px 30px -12px rgba(5, 131, 195, .8); }
 .boton-azul:hover { background: var(--azul); transform: translateY(-1px); }
-.boton-borde { border: 1.5px solid rgba(255, 255, 255, .7); color: #fff; }
-.boton-borde:hover { background: rgba(255, 255, 255, .1); border-color: #fff; }
 
 /* Portada: globo terráqueo que se gira arrastrando */
 .portada {
@@ -198,7 +196,6 @@ a { color: inherit; }
 @media (min-width: 861px) {
   #almacenaje .escena-fondo img { left: auto; right: 0; width: min(56%, 70svh, 680px); top: 0; height: 100%; animation: none; object-position: 50% 53%; -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 22%); mask-image: linear-gradient(to right, transparent 0%, #000 22%); }
 }
-.escena-fondo .f-sellado { object-position: 50% 66%; }
 .escena-fondo .f-empaque { object-position: 50% 36%; }
 .escena-fondo::after {
   content: ""; position: absolute; inset: 0;
