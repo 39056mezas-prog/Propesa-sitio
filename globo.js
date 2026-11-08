@@ -41,7 +41,7 @@
     var portada = document.querySelector('.portada');
     var rutas = DEST.map(function (d) { return arco(ENS, d.p, 140); });
     var vista = { lon: INICIO.lon, lat: INICIO.lat, vlon: 0, vlat: 0 };
-    var arrastre = null, ultimoToque = -1e9, t0 = performance.now(), visible = true, listo = false;
+    var capaLista = false, arrastre = null, ultimoToque = -1e9, t0 = performance.now(), visible = true, listo = false;
     var W = 0, H = 0, dpr = 1, R = 0, cx = 0, cy = 0;
     function tocado() { if (portada) portada.classList.add('tocado'); }
 
@@ -118,14 +118,16 @@
       return [cx + x * R, cy - y2 * R, z2];
     }
 
-    // --- sorpresas: barquitos, avión y langosta pegados a la superficie del globo ---
+    // --- el avión de la ruta ---
+    // Lo único que se mueve sobre el globo (pedido del usuario, 7/nov/2026): un avioncito de carga que va por la ruta
+    // de Ensenada a China continental, con su sombra en el mar. Sin barcos, lancha, langostas ni avión grande.
     // Marco local en (lon, lat): x = este, y = sur, en px; se encoge hacia el borde como la Tierra.
     function marco(lon, lat, s) {
       var p = proy(lon, lat);
       if (p[2] < 0.06) return null;
       var d = 0.3, pe = proy(lon + d / Math.max(0.2, Math.cos(lat * RAD)), lat), pn = proy(lon, lat + d);
       var k = s / (R * d * RAD), e = [(pe[0] - p[0]) * k, (pe[1] - p[1]) * k], n = [(p[0] - pn[0]) * k, (p[1] - pn[1]) * k];
-      [e, n].forEach(function (v) { var l = Math.hypot(v[0], v[1]) / s; if (l > 0 && l < 0.6) { v[0] *= 0.6 / l; v[1] *= 0.6 / l; } });   // que no se vuelvan una raya en el borde
+      [e, n].forEach(function (v) { var l = Math.hypot(v[0], v[1]) / s; if (l > 0 && l < 0.6) { v[0] *= 0.6 / l; v[1] *= 0.6 / l; } });   // que no se vuelva una raya en el borde
       ctx.setTransform(dpr * e[0], dpr * e[1], dpr * n[0], dpr * n[1], dpr * p[0], dpr * p[1]);
       ctx.globalAlpha = Math.min(1, (p[2] - 0.06) * 5) * Math.min(1, 0.55 + p[2]);
       return p;
@@ -144,86 +146,14 @@
       ctx.fillStyle = '#B8C3D3'; ctx.fillRect(.02, .3, .22, .1); ctx.fillRect(.02, -.4, .22, .1);   // motores
       ctx.fillStyle = '#0A2373'; forma([-.75, -.025, -1.02, -.025, -1.02, .025, -.75, .025]); ctx.fill();   // deriva
     }
-    function buque(t) {          // carguero con contenedores, proa en +x
-      ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = .05;
-      for (var i = 0; i < 3; i++) {                         // estela que se abre detrás
-        var o = ((t / 900 + i / 3) % 1);
-        ctx.beginPath(); ctx.moveTo(-1.1 - o * 1.6, .2 + o * .6); ctx.lineTo(-1.1 - o * 1.6 - .3, .26 + o * .7);
-        ctx.moveTo(-1.1 - o * 1.6, -.2 - o * .6); ctx.lineTo(-1.1 - o * 1.6 - .3, -.26 - o * .7); ctx.stroke();
-      }
-      ctx.fillStyle = '#2B2F38'; forma([1.15, 0, .8, .24, -1.1, .24, -1.15, 0, -1.1, -.24, .8, -.24]); ctx.fill();
-      var c = ['#C8473A', '#0A2373', '#0583C3', '#E8ECF2', '#C8473A', '#5BBAEE', '#0A2373'];
-      for (var k = 0; k < 7; k++) { ctx.fillStyle = c[k]; ctx.fillRect(.66 - k * .22, -.19, .19, .17); ctx.fillStyle = c[(k + 3) % 7]; ctx.fillRect(.66 - k * .22, .02, .19, .17); }
-      ctx.fillStyle = '#F4F7FB'; ctx.fillRect(-1.02, -.2, .2, .4);                                    // puente
-    }
-    function lancha(t) {         // langostera: cabina al frente, trampas atrás
-      ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = .06;
-      var o = (t / 1400) % 1;
-      ctx.save(); ctx.globalAlpha *= 1 - o; ctx.beginPath(); ctx.ellipse(0, 0, .9 + o * .9, .32 + o * .5, 0, 0, 7); ctx.stroke(); ctx.restore();
-      ctx.fillStyle = '#F4F7FB'; forma([.8, 0, .45, .26, -.62, .26, -.66, 0, -.62, -.26, .45, -.26]); ctx.fill();
-      ctx.fillStyle = '#0A2373'; ctx.fillRect(.02, -.17, .34, .34);                                      // techo de la cabina
-      ctx.fillStyle = '#E3B21A'; ctx.fillRect(-.55, -.18, .18, .16); ctx.fillRect(-.34, -.18, .18, .16); ctx.fillRect(-.55, .02, .18, .16);
-      ctx.fillStyle = '#3C7A3E'; ctx.fillRect(-.34, .02, .18, .16);
-    }
-    function langostita(t) {     // langosta roja, cabeza en +x, sin tenazas
-      ctx.strokeStyle = '#F0604B'; ctx.fillStyle = '#F0604B'; ctx.lineWidth = .07; ctx.lineCap = 'round';
-      var w = Math.sin(t / 700) * .08;
-      ctx.beginPath(); ctx.moveTo(.45, .08); ctx.quadraticCurveTo(.8, .2 + w, 1.1, .5 + w); ctx.moveTo(.45, -.08); ctx.quadraticCurveTo(.8, -.2 - w, 1.1, -.5 - w); ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(.22, 0, .26, .15, 0, 0, 7); ctx.fill();
-      for (var i = 0; i < 4; i++) { ctx.beginPath(); ctx.ellipse(-.1 - i * .15, 0, .09, .13 - i * .015, 0, 0, 7); ctx.fill(); }
-      forma([-.66, 0, -.88, .2, -.92, 0, -.88, -.2]); ctx.fill();
-      ctx.beginPath(); for (var j = 0; j < 3; j++) { ctx.moveTo(.3 - j * .12, .12); ctx.lineTo(.26 - j * .14, .32); ctx.moveTo(.3 - j * .12, -.12); ctx.lineTo(.26 - j * .14, -.32); } ctx.stroke();
-    }
-    function sorpresas(t) {
-      var s = Math.max(6, R / 34);
-      ctx.save();
-      // lancha langostera mar adentro, al sur de la etiqueta de Ensenada, meciéndose
-      if (marco(-121.5, 22.2, s * .95)) { ctx.rotate(-rumbo([0, 0], [-1, -.35]) + Math.sin(t / 1100) * .08); lancha(t); }
-      // langosta roja frente al sur de la península
-      if (marco(-116.8, 20.6, s * .7)) { ctx.rotate(-2.1); langostita(t); }
-      // carguero cruzando el Pacífico rumbo a Asia, muy despacio
-      var f = (t / 160000) % 1, lon = -150 - f * 30, lat = 26 + Math.sin(f * 3) * 1.5;
-      if (marco(lon, lat, s * 1.1)) { ctx.globalAlpha *= Math.min(1, f * 10, (1 - f) * 10); ctx.rotate(-rumbo([lon, lat], [lon - 1, lat + Math.cos(f * 3) * .15])); buque(t); }
-      // avión de carga sobre la ruta a Hong Kong, con su sombra en el mar.
-      // Mientras el avión grande vuela hacia él (al bajar la página) se esconde, y reaparece al llegar.
-      var ruta = rutas[2], g = (t / 42000) % 1, i = Math.max(1, Math.floor(g * (ruta.length - 1))), a = ruta[i - 1], b = ruta[i];
+    function avionRuta(t) {
+      var s = Math.max(6, R / 34), ruta = rutas[0], g = (t / 42000) % 1, i = Math.max(1, Math.floor(g * (ruta.length - 1))), a = ruta[i - 1], b = ruta[i];
       var h = rumbo(a, b), fade = Math.min(1, g * 12, (1 - g) * 12);
-      var pa = proy(a[0], a[1]), pb = proy(b[0], b[1]);
-      destino = { x: pb[0], y: pb[1], ang: Math.atan2(pb[1] - pa[1], pb[0] - pa[0]), largo: 2.5 * s, fade: pb[2] > 0.06 ? fade : 0 };
-      fade *= progreso < 0.5 ? Math.max(0, 1 - progreso * 6) : suave(0.82, 1, progreso);
+      ctx.save();
       if (marco(b[0], b[1], s * 1.25)) { ctx.globalAlpha *= fade * .8; ctx.translate(.35, .55); ctx.rotate(-h); avion(true); }
       if (marco(b[0], b[1], s * 1.25)) { ctx.globalAlpha *= fade; ctx.rotate(-h); avion(false); }
       ctx.restore();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = 1;
-    }
-
-    // --- el avión grande vuela al globo al bajar la página ---
-    // Baja por una curva suave hasta el avioncito de la ruta a Hong Kong, alejándose (se achica hasta
-    // su tamaño) y enderezándose hacia el rumbo de la ruta; al llegar, el avioncito toma su lugar.
-    var avionGrande = caja.querySelector('.adorno-avion'), destino = null, progreso = 0;
-    var NARIZ = Math.atan2(-142, -662);     // hacia dónde apunta la nariz en avion-carga.png
-    function suave(a, b, x) { x = Math.max(0, Math.min(1, (x - a) / (b - a))); return x * x * (3 - 2 * x); }
-    function vuelo() {
-      if (!avionGrande || !portada || !destino) return;
-      var desp = Math.max(0, -portada.getBoundingClientRect().top);       // cuánto se ha bajado
-      progreso = quieto ? 0 : Math.min(1, desp / (H * 0.2));
-      var activo = progreso > 0;
-      avionGrande.classList.toggle('volando', activo);
-      if (!activo) { avionGrande.style.transform = ''; avionGrande.style.opacity = ''; return; }
-      var w = avionGrande.offsetWidth, hh = avionGrande.offsetHeight;
-      var x0 = avionGrande.offsetLeft + w * 0.465, y0 = avionGrande.offsetTop + hh * 0.363;
-      var x3 = destino.x, y3 = destino.y, L = Math.hypot(x3 - x0, y3 - y0);
-      var x1 = x0 + Math.cos(NARIZ) * L * 0.22, y1 = y0 + Math.sin(NARIZ) * L * 0.22;
-      var x2 = x3 - Math.cos(destino.ang) * L * 0.3, y2 = y3 - Math.sin(destino.ang) * L * 0.3;
-      var u = progreso < 0.5 ? 4 * progreso * progreso * progreso : 1 - Math.pow(-2 * progreso + 2, 3) / 2, v = 1 - u;
-      var x = v * v * v * x0 + 3 * v * v * u * x1 + 3 * v * u * u * x2 + u * u * u * x3;
-      var y = v * v * v * y0 + 3 * v * v * u * y1 + 3 * v * u * u * y2 + u * u * u * y3 + v * desp;   // al principio se queda en el cielo, al final va pegado al globo
-      // la foto es 3D: girarla mucho se ve falso, así que solo se endereza hacia el rumbo de la ruta
-      var giro = destino.ang - NARIZ;
-      giro = Math.atan2(Math.sin(giro), Math.cos(giro)) * u;
-      var escala = Math.exp(Math.log(destino.largo / (w * 0.94)) * u);
-      avionGrande.style.transform = 'translate(' + (x - x0).toFixed(1) + 'px,' + (y - y0).toFixed(1) + 'px) rotate(' + giro.toFixed(4) + 'rad) scale(' + escala.toFixed(4) + ')';
-      avionGrande.style.opacity = (1 - suave(0.82, 1, progreso)).toFixed(3);
     }
 
     // --- capa 2D ---
@@ -258,7 +188,7 @@
           }
         }
       });
-      if (dibujo >= 1) sorpresas(quieto ? 0 : t);
+      if (dibujo >= 1) avionRuta(quieto ? 0 : t);
       // puntos y nombres
       // Los nombres van siempre, también en el teléfono (antes solo con el globo grande, R > 230: en el teléfono y en
       // pantallas chicas o con zoom no salían). En un globo chico la letra y la separación se achican.
@@ -269,9 +199,11 @@
         ctx.lineWidth = Math.max(3, fs * .27); ctx.strokeStyle = 'rgba(6,22,74,.9)'; ctx.strokeText(txt, x, y);
         ctx.fillStyle = color || '#fff'; ctx.fillText(txt, x, y);
       }
+      // Puntos y nombres quietos desde el primer cuadro (pedido del usuario: los nombres «aparecían» de golpe al terminar
+      // de dibujarse las rutas). Ya no esperan a la ruta ni hacen ninguna animación.
       DEST.forEach(function (d) {
-        var p = proy(d.p[0], d.p[1]); if (p[2] < 0.08 || dibujo < 1) return;
-        ctx.globalAlpha = Math.min(1, (p[2] - .08) * 6);
+        var p = proy(d.p[0], d.p[1]); if (p[2] < 0.08) return;
+        ctx.globalAlpha = 1;
         ctx.fillStyle = '#F0604B'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.2;
         ctx.beginPath(); ctx.arc(p[0], p[1], Math.max(4, R / 80), 0, 7); ctx.fill(); ctx.stroke();
         nombre(d.n, p[0] + d.dx * ks, p[1] + d.dy * ks, d.a, 700);
@@ -327,7 +259,7 @@
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         }
         capaDibujar(t);
-        vuelo();
+        if (!capaLista) { capaLista = true; caja.classList.add('capa-lista'); }
       }
       requestAnimationFrame(cuadro);
     }

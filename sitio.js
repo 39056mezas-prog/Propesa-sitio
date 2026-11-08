@@ -17,18 +17,6 @@
       window.addEventListener('scroll', marca, { passive: true });
     }
 
-    // La langosta de la portada da un coletazo al pasarle el ratón o tocarla.
-    var langosta = document.querySelector('.langosta-viva');
-    if (langosta && !quieto) {
-      var coletazo = function (e) {
-        if (e.type === 'pointerenter' && e.pointerType !== 'mouse') return;
-        langosta.classList.remove('coletazo'); void langosta.offsetWidth; langosta.classList.add('coletazo');
-      };
-      langosta.addEventListener('pointerenter', coletazo);
-      langosta.addEventListener('pointerdown', coletazo);
-      langosta.addEventListener('animationend', function (e) { if (e.animationName === 'coletazo') langosta.classList.remove('coletazo'); });
-    }
-
     // Cierra el menú del teléfono al elegir una sección.
     var menu = document.querySelector('.menu');
     if (menu) menu.addEventListener('click', function (e) {

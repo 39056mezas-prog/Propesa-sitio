@@ -154,6 +154,11 @@ a { color: inherit; }
 .globo-inicio, .globo-gl, .globo-capa { position: absolute; inset: 0; width: 100%; height: 100%; }
 .globo-inicio { border-radius: 50%; clip-path: circle(43% at 50% 50%); }
 .globo.vivo .globo-inicio { opacity: 0; transition: opacity .6s ease .1s; }
+/* Rutas, puntos y nombres: entran juntos con un desvanecido suave la primera vez (antes los nombres «brincaban» al
+   terminar de dibujarse las rutas). Con «Reducir movimiento», sin desvanecido. */
+.globo-capa { opacity: 0; transition: opacity .9s ease; }
+.globo.capa-lista .globo-capa { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .globo-capa { transition: none; } }
 .globo.sin-gl { cursor: default; }
 .globo-pista {
   position: absolute; z-index: 2; bottom: clamp(24px, 6%, 56px); right: calc(max(-2vw, -30px) + min(104svh, 58vw, 1020px) * .32); transform: translateX(50%); margin: 0;
@@ -169,59 +174,7 @@ a { color: inherit; }
 }
 @keyframes pista { 0%, 100% { translate: 0 0; } 50% { translate: 10px 0; } }
 
-/* Adornos alrededor del globo: avión, lancha langostera y langosta. No estorban el arrastre. */
-.adornos { position: absolute; inset: 0; pointer-events: none; }
-.adorno { position: absolute; height: auto; user-select: none; }
-.adorno-avion { top: 3%; right: 3%; width: 31%; transform-origin: 46.5% 36.3%; filter: drop-shadow(18px 34px 22px rgba(2, 8, 30, .45)); will-change: transform; }
-.adorno-avion.volando { animation: none; }
-.pesca { bottom: 6%; left: -2%; width: 43%; }
-.pesca .barco { position: relative; z-index: 1; display: block; width: 100%; height: auto; filter: drop-shadow(0 14px 18px rgba(2, 8, 30, .35)); }
-/* La langosta sale de atrás de la lancha, inclinada: cuerpo y dos antenas en capas alineadas,
-   y las antenas giran desde su base real. .sale la recorta bajo la línea de flotación (cuando se
-   mete a la lancha no asoma por debajo); .ancla es la caja de la lancha dentro de .sale. */
-.sale { position: absolute; z-index: 0; left: -150%; right: -150%; bottom: 30%; height: 500%; overflow: hidden; pointer-events: none; }
-.ancla { position: absolute; left: 37.5%; width: 25%; bottom: -6%; height: 20%; }
-.langosta-viva {
-  position: absolute; left: 6%; bottom: 45%; width: 88%;
-  transform: rotate(107deg);
-  pointer-events: auto; -webkit-tap-highlight-color: transparent;
-  filter: drop-shadow(0 14px 16px rgba(2, 8, 30, .45));
-}
-.langosta-viva img { display: block; width: 100%; height: auto; }
-.langosta-viva .antena { position: absolute; inset: 0; }
-.antena-a { transform-origin: 43.4% 41.2%; }
-.antena-b { transform-origin: 39.8% 32.6%; }
-.adorno-langosta { top: 57%; right: 7%; width: 9.5%; rotate: -28deg; opacity: .92; }
-@media (prefers-reduced-motion: no-preference) {
-  .adorno-avion { animation: vuelo 14s ease-in-out infinite alternate; }
-  .pesca { animation: flota 6.5s ease-in-out infinite; }
-  /* flota con la lancha y de vez en cuando se acomoda; las antenas nunca se están quietas */
-  .langosta-viva { animation: acomoda 9s ease-in-out 2s infinite; }
-  .antena-a { animation: tantea 3.4s ease-in-out infinite alternate; }
-  .antena-b { animation: tantea 2.7s ease-in-out -1.3s infinite alternate-reverse; }
-  /* al pasar el ratón o tocarla: el escape de la langosta espinosa, un coletazo hacia atrás: se mete a la lancha y vuelve a salir */
-  .langosta-viva.coletazo { animation: coletazo .85s cubic-bezier(.16, 1, .3, 1); }
-  .langosta-viva.coletazo .antena { animation: barrido .85s cubic-bezier(.16, 1, .3, 1); }
-}
-@media (min-width: 861px) and (max-height: 820px) {
-  /* pantallas bajas: el avión no tapa «Iniciar sesión» y la lancha se recorre para no acercarse a los botones */
-  .adorno-avion { top: 9%; width: 28%; }
-  .pesca { left: 4%; bottom: 7%; width: 38%; }
-}
-@keyframes vuelo { from { translate: 0 0; } to { translate: -4% -1.5%; } }
-@keyframes acomoda { 0%, 84%, 100% { rotate: 0deg; } 87% { rotate: -2.5deg; } 91% { rotate: 1.2deg; } 95% { rotate: 0deg; } }
-@keyframes tantea { from { rotate: -4deg; } to { rotate: 5deg; } }
-@keyframes coletazo {
-  0% { translate: 0 0; }
-  16% { translate: 0 30%; }
-  42% { translate: 0 24%; }
-  100% { translate: 0 0; }
-}
-@keyframes barrido { 0% { rotate: 0deg; } 14% { rotate: -12deg; } 45% { rotate: 6deg; } 100% { rotate: 0deg; } }
-@keyframes flota { 0%, 100% { translate: 0 0; rotate: -1deg; } 50% { translate: 0 -2.5%; rotate: 1.2deg; } }
-
-/* Degradado azul desde abajo: el fondo con .velo-mapa, el globo con su propia máscara,
-   para que el avión, la lancha y la langosta no se apaguen */
+/* Degradado azul desde abajo: el fondo con .velo-mapa, el globo con su propia máscara */
 @media (min-width: 861px) {
   .globo-inicio, .globo-gl, .globo-capa {
     -webkit-mask-image: linear-gradient(to top, transparent 0%, rgba(0, 0, 0, .3) 12%, #000 36%);
@@ -415,8 +368,6 @@ a { color: inherit; }
   .velo-mapa { display: none; }
   .cartela { position: relative; top: auto; transform: none; left: auto; width: auto; padding: 0 var(--margen) 56px; }
   .globo-pista { position: relative; right: auto; bottom: auto; transform: none; align-self: center; margin: -9% 0 22px; }
-  .pesca { bottom: calc(15vw + 12px); left: 2%; width: 40%; }   /* justo arriba de la pista (margen -6% del globo + -9% de la pista) */
-  .adorno-langosta { top: 47%; right: 1%; }
   .escena { align-items: flex-end; min-height: 88svh; }
   .escena-fondo::after, .escena-der .escena-fondo::after {
     background: linear-gradient(to top, rgba(6, 22, 74, .97) 0%, rgba(10, 35, 115, .85) 42%, rgba(10, 35, 115, .3) 75%, rgba(5, 131, 195, .12) 100%);
