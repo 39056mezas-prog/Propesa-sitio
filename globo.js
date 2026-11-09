@@ -5,7 +5,10 @@
 (function () {
   'use strict';
   var RAD = Math.PI / 180;
-  var LIM = { lon: [165, 189], lat: [10, 36] };       // límites: Ensenada y Asia siempre a la vista
+  // 8/nov/2026 (usuario: «quiero poder girar el globo»): de lado gira completo (360°); arriba y abajo con límite.
+  // Si nadie lo toca unos segundos, regresa solo a Ensenada y Asia.
+  var LIM = { lat: [-10, 55] };
+  var dlonA = function (a, b) { return ((b - a + 540) % 360) - 180; };   // diferencia más corta entre dos longitudes
   var INICIO = { lon: 177, lat: 22 };
   var ENS = [-116.6, 31.87];
   var DEST = [
@@ -231,11 +234,16 @@
     function limitar() {
       // fuera del límite el globo regresa como resorte
       var r = function (v, lim) { return v < lim[0] ? (lim[0] - v) : v > lim[1] ? (lim[1] - v) : 0; };
-      var rl = r(vista.lon, LIM.lon), ra = r(vista.lat, LIM.lat);
-      if (rl) { vista.vlon *= .5; vista.lon += rl * .14; }
+      var ra = r(vista.lat, LIM.lat);
+      vista.lon = ((vista.lon % 360) + 360) % 360;
       if (ra) { vista.vlat *= .5; vista.lat += ra * .14; }
     }
+    // Fuera de la pantalla el globo no pide cuadros (antes seguía pidiendo 60 por segundo sin dibujar): se apaga solo y
+    // vuelve cuando la portada se ve otra vez.
+    var corriendo = false;
+    function arrancar() { if (!corriendo) { corriendo = true; requestAnimationFrame(cuadro); } }
     function cuadro(ahora) {
+      if (!visible && !arrastre) { corriendo = false; return; }
       if (visible) {
         var t = ahora - t0;
         if (!arrastre) {
@@ -244,9 +252,9 @@
           if (Math.abs(vista.vlon) < 0.002) vista.vlon = 0;
           if (Math.abs(vista.vlat) < 0.002) vista.vlat = 0;
           // en reposo, el globo se mece despacio (si el equipo permite movimiento)
-          if (!quieto && ahora - ultimoToque > 5000 && !vista.vlon && !vista.vlat) {
-            var meta = INICIO.lon + Math.sin(t / 9000) * 6;
-            vista.lon += (meta - vista.lon) * 0.006;
+          if (!quieto && ahora - ultimoToque > 8000 && !vista.vlon && !vista.vlat) {
+            var meta = INICIO.lon + Math.sin(t / 9000) * 6, lejos = Math.abs(dlonA(vista.lon, INICIO.lon)) > 20;
+            vista.lon += dlonA(vista.lon, meta) * (lejos ? 0.02 : 0.006);
             vista.lat += (INICIO.lat - vista.lat) * 0.006;
           }
           limitar();
@@ -279,8 +287,8 @@
         var dt = Math.max(8, ahora - arrastre.t);
         var dlon = -dx * k, dlat = e.pointerType === 'touch' ? 0 : dy * k;
         var borde = function (v, lim, d) { var fuera = (v < lim[0] && d < 0) || (v > lim[1] && d > 0); return fuera ? d * .25 : d; };
-        dlon = borde(vista.lon, LIM.lon, dlon); dlat = borde(vista.lat, LIM.lat, dlat);
-        vista.lon = Math.max(LIM.lon[0] - 4, Math.min(LIM.lon[1] + 4, vista.lon + dlon));
+        dlat = borde(vista.lat, LIM.lat, dlat);
+        vista.lon = vista.lon + dlon;
         vista.lat = Math.max(LIM.lat[0] - 3, Math.min(LIM.lat[1] + 3, vista.lat + dlat));
         vista.vlon = dlon * 16 / dt; vista.vlat = dlat * 16 / dt;
         arrastre.x = e.clientX; arrastre.y = e.clientY; arrastre.t = ahora; ultimoToque = ahora;
@@ -292,7 +300,6 @@
         var paso = { ArrowLeft: [-4, 0], ArrowRight: [4, 0], ArrowUp: [0, 3], ArrowDown: [0, -3] }[e.key];
         if (!paso) return;
         e.preventDefault(); vista.vlon = paso[0] * .12; vista.vlat = paso[1] * .12; ultimoToque = performance.now();
-        if ((vista.lon <= LIM.lon[0] && paso[0] < 0) || (vista.lon >= LIM.lon[1] && paso[0] > 0)) vista.vlon = 0;
         if ((vista.lat <= LIM.lat[0] && paso[1] < 0) || (vista.lat >= LIM.lat[1] && paso[1] > 0)) vista.vlat = 0;
         tocado();
       });
@@ -302,7 +309,7 @@
     }
 
     if ('IntersectionObserver' in window && portada) {
-      new IntersectionObserver(function (en) { visible = en[0].isIntersecting; }, { threshold: 0 }).observe(portada);
+      new IntersectionObserver(function (en) { visible = en[0].isIntersecting; if (visible) arrancar(); }, { threshold: 0 }).observe(portada);
     }
     document.addEventListener('visibilitychange', function () { if (!document.hidden) t0 = performance.now() - 6000; });
     medir();
@@ -310,9 +317,7 @@
     // Si la caja del globo cambia de tamaño sin que cambie la ventana (la página termina de acomodarse, la barra del
     // navegador se esconde), se vuelve a medir; antes el globo se quedaba con la medida vieja hasta mover la pantalla.
     if ('ResizeObserver' in window) new ResizeObserver(function () { var r = caja.getBoundingClientRect(); if (Math.abs(r.width - W) > .5 || Math.abs(r.height - H) > .5) medir(); }).observe(caja);
-    (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(function () {
-      requestAnimationFrame(cuadro);
-    });
+    (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(arrancar);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);

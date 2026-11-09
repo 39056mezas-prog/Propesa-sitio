@@ -273,6 +273,8 @@ Since 3/nov/2026 the hero is a real 3D globe (`globo.js`, hand-written WebGL, no
 - **Drag to turn:** mouse or finger turns the globe horizontally and vertically (touch: horizontal only, so a vertical swipe still scrolls the page); arrow keys turn it when focused. On release it keeps turning and slows down (inertia 0.94 per frame).
 - **Boundary:** the globe's centre stays between 165°E–189°E and 10°N–36°N so Ensenada and the three Asian regions are always visible; dragging past the edge meets resistance and springs back.
 - **Overlay (2D canvas, same projection):** the three lobster-red great-circle routes draw once on load, white light trails with a light-blue glow keep flying Ensenada → Asia, Ensenada pulses, red destination points and white labels with navy halos; anything on the far side of the globe is hidden.
+- **Free spin (8/nov/2026, user: «quiero poder girar el globo»):** dragging sideways turns the globe all the way around (360°); up/down is limited. After 8 s untouched it glides back to the Ensenada–Asia view (not under reduced motion).
+- **Company name (8/nov/2026, user):** title, og:title, og:site_name and JSON-LD say «Proveedor del Pescador S.A. de C.V.»; inside the site the name never wraps (`.nombre`, non-breaking spaces). No phone number anywhere on the public site: contact is email only. Tallas read «De 851 a 1220 g» and `format-detection` is off so phones don't turn them into a call link.
 - **Only one moving extra (7/nov/2026, user):** a small white cargo plane (with its shadow on the sea) flies the Ensenada → mainland China route. No boats, no lobsters, no lobster doodle and no big plane around or on the globe. Labels and points are steady from the first frame (they no longer pop in when the routes finish); the whole overlay fades in once, softly (no fade under reduced motion).
 - **Idle:** after 5 s without touch the globe sways gently around the start view (177°E, 22°N); under reduced motion nothing moves by itself but dragging still works.
 - **Hint:** a pill "Arrastre para girar el globo" with a hand icon under the globe until the first touch.
@@ -280,7 +282,7 @@ Since 3/nov/2026 the hero is a real 3D globe (`globo.js`, hand-written WebGL, no
 - A navy gradient (`.velo-mapa`) rises from the bottom of the hero.
 
 ### Ensenada Contact Chart
-The image half of the white contact section: a northern Baja California chart (`img/carta-contacto.svg`, Natural Earth 10m land and coastline, coast drawn as lines only) in the same navy chart tones, anchored right (`xMaxYMid slice`), with a white origin marker and its pulsing ring at Ensenada, the white "Ensenada" label and an uppercase "Baja California" region label. No frame, no veil, no caption bar.
+The image half of the white contact section (since 8/nov/2026, user): a **satellite** view of Baja California (`img/mapa-satelital.jpg`, cropped from the same NASA Blue Marble texture as the globe, slightly darkened), plus an italic «Océano Pacífico» label, anchored right (`xMaxYMid slice`), with a white origin marker and its pulsing ring at Ensenada, the white "Ensenada" label and an uppercase "Baja California" region label. No frame, no veil, no caption bar.
 
 ### Map Legend
 Shown only at 640px and below, under the hero statement: 12px round keys ringed in PROPESA Navy and white (white for the origin, Lobster Red for destinations) beside Navy Mist text at 0.95rem.

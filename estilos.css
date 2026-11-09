@@ -416,3 +416,13 @@ a { color: inherit; }
   .medios a { padding: 16px 18px; }
   .pie-fila { flex-direction: column; }
 }
+
+/* 8/nov/2026 (usuario): el nombre de la empresa siempre en un renglón */
+.nombre { white-space: nowrap; }
+/* Mapa del contacto: foto satelital (la misma de la NASA del globo); los rótulos llevan contorno para leerse sobre la tierra */
+.contacto-mapa .rotulo-pais { paint-order: stroke; stroke: rgba(6, 22, 74, .85); stroke-width: 6px; stroke-linejoin: round; fill: #fff; }
+.contacto-mapa .rotulo-mar { font-family: "Archivo", system-ui, sans-serif; font-size: 24px; font-style: italic; font-weight: 450; fill: rgba(255, 255, 255, .85); paint-order: stroke; stroke: rgba(6, 22, 74, .6); stroke-width: 5px; }
+@media (max-width: 860px) { .contacto-mapa .rotulo-mar { font-size: 34px; } }
+/* El correo de Contacto no se parte a la mitad en teléfonos chicos */
+.medios a span { min-width: 0; }
+@media (max-width: 420px) { .medios a { font-size: clamp(.95rem, 4.6vw, 1.15rem); gap: 12px; } .medios a span { overflow-wrap: normal; word-break: keep-all; } }
