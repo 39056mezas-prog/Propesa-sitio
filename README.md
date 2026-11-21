@@ -12,7 +12,7 @@ Página de inicio de Proveedor del Pescador S.A. de C.V. HTML y CSS sin librerí
 | `globo.js` | El globo 3D de la portada: se gira arrastrando, con límite, rutas y luces. Lo único que se mueve encima es el avioncito de la ruta Ensenada → China continental (desde el 7/nov/2026 no hay barco, langosta, garabato ni avión grande). Los nombres están quietos desde el inicio. Si el equipo no tiene 3D o lo pierde (teléfono con poca memoria), se queda la foto fija `img/globo-inicio.jpg` con las rutas encima. Con «Reducir movimiento» no se anima y solo se dibuja cuando algo cambia Fuera de la pantalla deja de dibujar (no gasta batería mientras se lee el resto de la página). |
 | `img/tierra-textura.jpg` | Imagen satelital de la Tierra para el globo (NASA Blue Marble, dominio público), 2048×1024, 284 KB. No la agrande: con 4096 px el teléfono se quedaba sin memoria y quitaba el 3D |
 | `img/globo-inicio.jpg` | Foto fija del globo para equipos sin gráficos 3D |
-| `img/mapa-satelital.jpg` | Foto satelital de Baja California (mitad derecha de Contacto), recortada de la misma imagen de la NASA del globo (8/nov/2026) |
+| `img/mapa-baja-1600.jpg`, `img/mapa-baja-2400.jpg` | Mapa satelital de Baja California (mitad derecha de Contacto), en dos tamaños: el navegador baja el de 2400 px solo en pantallas de alta resolución. Hecho el 21/nov/2026 con mosaicos de NASA Blue Marble (relieve y batimetría, 500 m por píxel, dominio público) de @freetiler/nasa-bluemarble, nivel 8, en proyección Mercator. Sustituye a `mapa-satelital.jpg`, que salía borroso porque era un recorte ampliado de la textura chica del globo. Si se cambia la imagen, use otro nombre de archivo: `img/` se guarda 30 días en caché. El punto de Ensenada y el nombre «Baja California» (girado sobre la península) están en el SVG de `index.html`, en las mismas medidas 1600×900 |
 | `fuentes/` | Letra Archivo (licencia OFL, incluida) |
 | `img/logo-propesa*.svg` | Logo PROPESA (el mismo de la app «PROPESA — Procesos y Operaciones»), a color y en blanco |
 | `img/og-image.jpg` | Vista previa al compartir el link (WhatsApp, Facebook…): 1200×630, menos de 300 KB. Si se cambia, subir `?v=` en las etiquetas `og:image`/`twitter:image` de `index.html` |
@@ -24,7 +24,7 @@ Página de inicio de Proveedor del Pescador S.A. de C.V. HTML y CSS sin librerí
 
 ## Al publicar un cambio
 
-Sube el número `?v=` de `estilos.css`, `sitio.js` y `globo.js` en `index.html` (ahora `v=10`) para que los teléfonos no se queden con la versión vieja.
+Sube el número `?v=` de `estilos.css`, `sitio.js` y `globo.js` en `index.html` (ahora `v=11`) para que los teléfonos no se queden con la versión vieja.
 
 ## Antes de publicar
 

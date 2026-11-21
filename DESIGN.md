@@ -282,7 +282,7 @@ Since 3/nov/2026 the hero is a real 3D globe (`globo.js`, hand-written WebGL, no
 - A navy gradient (`.velo-mapa`) rises from the bottom of the hero.
 
 ### Ensenada Contact Chart
-The image half of the white contact section (since 8/nov/2026, user): a **satellite** view of Baja California (`img/mapa-satelital.jpg`, cropped from the same NASA Blue Marble texture as the globe, slightly darkened), plus an italic «Océano Pacífico» label, anchored right (`xMaxYMid slice`), with a white origin marker and its pulsing ring at Ensenada, the white "Ensenada" label and an uppercase "Baja California" region label. No frame, no veil, no caption bar.
+The image half of the white contact section (since 8/nov/2026, user): a **satellite** view of Baja California (`img/mapa-baja-1600.jpg` / `-2400.jpg` via srcset; since 21/nov/2026 built from NASA Blue Marble shaded-relief + bathymetry tiles at 500 m/px, Mercator, so it stays sharp on retina screens), plus an italic «Océano Pacífico» label, anchored right (`xMaxYMid slice`), with a white origin marker and its pulsing ring at Ensenada, the white "Ensenada" label and an uppercase "Baja California" region label rotated along the peninsula (it used to sit on Sonora). No frame, no veil, no caption bar.
 
 ### Map Legend
 Shown only at 640px and below, under the hero statement: 12px round keys ringed in PROPESA Navy and white (white for the origin, Lobster Red for destinations) beside Navy Mist text at 0.95rem.
