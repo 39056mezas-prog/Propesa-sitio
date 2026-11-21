@@ -1,0 +1,176 @@
+# UX.md · Cómo debe sentirse la plataforma
+
+## 1. Para quién diseñamos
+
+Un empleado de piso, de pie, moviéndose, con guantes o manos mojadas, con poca luz, que mira la tablet un segundo. Debe entender al instante:
+
+1. ¿Dónde estoy?
+2. ¿Qué estoy haciendo?
+3. ¿Qué necesita mi atención?
+4. ¿Qué ya está completo?
+5. ¿Hay un problema?
+
+El usuario lo resume así: que sea **tan fácil como la caja de McDonald's** (ver `docs/referencias/investigacion_mcdonalds.txt`).
+
+## 2. Principios (de la investigación de McDonald's)
+
+| Principio | En PROPESA |
+|---|---|
+| **Cero fricción** | Cada acción es un botón grande al frente. Nada de menús anidados ni buscar. Flujo lineal. |
+| **Rejilla densa y fija** | Botones grandes en lugares que no se mueven, para crear memoria muscular. Las cajas de Modo piso tienen lugar fijo (`b.ps`). |
+| **Revelación progresiva** | Solo se muestra lo del paso actual: cliente → lote → cajas. Si hay un solo lote, se salta ese paso. |
+| **A prueba de errores (poka-yoke)** | El sistema no deja avanzar sin lo necesario y explica qué falta. No se pueden empacar más cajas de las pedidas, ni un conteo mayor a lo esperado. |
+| **Se entiende sin leer** | Íconos + colores constantes (ROJO / VERDE / BLANCO; colores de talla) + texto corto. |
+
+## 3. Reglas de interacción
+
+- **Los avisos rojos llevan a donde se resuelven.** Chip, tarjeta o renglón de alerta = botón: «Faltan N · Empacar ›», «Sin líneas · Agregar ›», «Resolver ›». Si el problema es un campo, se hace scroll, se enfoca y se resalta (`data-jump`). Toda notificación nueva debe seguir esta regla.
+- **Corregir tiene que ser fácil.** Una caja guardada se queda en pantalla. En Modo piso queda con ✔ Completada y borde verde, y se edita ahí mismo o se quita (con confirmación). En la vista completa queda en verde en la misma tabla; tocarla o «Editar» la reabre con sus valores («Actualizar caja N», «Cancelar», «Quitar caja»). Nada desaparece después de guardar.
+- **Cada caja dice en qué va** (indicador + texto pequeño, sin pastillas de color): Pendiente (gris, círculo vacío) · En captura (círculo a medias, cian) · ✔ Completada (verde tenue, fila con tinte verde suave) · Editando (punto cian y marco delgado) · ⚠ Incompleta (rojo, al corregir). Completada = guardada con piezas, categoría y lote; tocar un color no basta.
+- **El avance va arriba y quieto (v1.13.1, pedido del usuario: no le gustaba que flotara debajo del teclado):** «✔ N completadas · N pendientes · N % completado» y una barra delgada (cian) que avanza con las cajas guardadas, justo debajo de «Hieleras de …». Abajo, junto al teclado, solo queda «Guardar hieleras». El botón Guardar **no** cambia de tamaño (se probó en la v1.2.0 y se cambió en la v1.2.1 por pedido del usuario). Los avisos (toast) salen arriba de la pantalla.
+- **Empaque, estilo sobrio (v1.2.1, pedido del usuario):** referencia iOS para la tabla de cajas: separadores finos, Rojo/Verde/Blanco como control segmentado compacto (mismo tamaño, seleccionado = fondo claro con borde de acento, sin azul saturado), lotes como selector horizontal (se desliza de lado en celular), números alineados a la derecha. Cada fila es como una celda de lista de iOS (v1.2.2): a la izquierda «Caja N» con su estado, a la derecha el valor con su unidad («12 piezas ›»; el campo dice «piezas» dentro), para que el número de caja y el conteo no se confundan. La barra de abajo es una cápsula flotante (bordes redondos y sombra suave) y los avisos salen arriba en esta pantalla. En esta pantalla el número de pendientes va en gris, no en rojo: el rojo queda para errores y la categoría Rojo. Solo aplica a la tarjeta de cajas (`.pkx`); el Modo piso conserva sus botones grandes.
+- **Teclado fijo en Empaque (v1.3.0, pedido del cliente):** en la vista completa y en Modo piso hay un teclado numérico siempre visible (botones de 48 px o más) con las categorías debajo de los números (o a un lado en pantallas angostas). El teclado de la tablet ya no aparece (`inputmode="none"`), así no tapa las cajas; un teclado físico sigue funcionando. En la vista completa la categoría marca la fila y pasa a la siguiente; se guardan todas con «Guardar cajas», que va pegado al teclado. Al abrir un cliente la pantalla baja sola lo justo para ver el teclado completo.
+- **Se guarda solo cuando se puede.** En Modo piso cada caja se guarda al tener piezas y categoría (`peTry`), sin botón «Guardar». Si otro equipo ocupa el lugar donde estás escribiendo, lo escrito pasa al siguiente lugar libre y se avisa; nunca se cambia una hielera que no tocaste (v1.38.1).
+- **Varias cosas a la vez.** Los empleados anotan varias cajas a la vez: se muestran todas las cajas pendientes del cliente, no una por una. «Poner a todas las vacías» aplica una categoría de un toque.
+- **Los formularios no borran lo escrito** cuando hay un error: se marca el campo en rojo, se enfoca y se explica.
+- **Confirmar solo lo destructivo:** quitar caja, eliminar lote, restaurar respaldo, borrar datos (este último exige escribir BORRAR).
+- **El logo siempre regresa al inicio**, en cualquier modo: en la vista completa al **Centro de operaciones**, en Modo piso a «¿Qué vas a hacer?» (v1.39.0). La maquila se cambia con su propio botón «PROPESA ▾» debajo del logo.
+- **Cambiar de modo** con un interruptor tipo iOS y una transición suave (sin animación si el equipo pide movimiento reducido).
+- **Listas cortas:** solo lo abierto o reciente (lotes 30 días, órdenes y embarques 14, temperatura 7) con «Ver historial».
+- **Mensajes:** un toast breve al guardar; nunca «Guardado» si el guardado falló (aviso rojo fijo con «Descargar respaldo» y «Reintentar»).
+
+## 3b. Herramienta de formatos (v1.33.0)
+
+- La vista completa abre en **Formatos** («¿Qué formato vas a llenar?»): tarjetas que abren cada formato directo, solo las que el rol puede llenar. Sin orden fijo; el menú no lleva números y las guías dicen «Formato».
+- Lo que falta (lote sin entrada) es recordatorio gris, no alarma.
+- **Empaque en iPad:** teclado a un lado de las hieleras (desde 34rem de ancho del área); las hieleras siempre se ven. Las teclas cuentan al levantar el dedo.
+- **Eliminar orden** arriba junto al título y también con hieleras (confirmación con cuántas). **Entrada:** Ver · Editar · Eliminar en cada fila.
+
+## 3c. Pantallas limpias (v1.34.0, pedido del usuario: «demasiados campos, no se sabe por dónde empezar»)
+
+- **Cada sección empieza en lo que se hace:** título, una línea y la acción principal arriba a la derecha (`guide()`). Nada de recuadros azules con explicaciones largas ni etiquetas «Formato/Guía».
+- **Una sola acción azul por pantalla.** PDF y correo son botones discretos (`.btn.q`).
+- **Lo secundario se pliega** (`fold()`): fotos y notas, tanques y planta 3D en Entrada, tanques, precio y movimientos del lote, desglose del peso bruto, «¿Cómo se calcula?». El resumen del plegable dice lo importante sin abrirlo (kg, total, número de notas). Lo abierto se queda abierto mientras se usa; una nota con algo escrito sin guardar se abre sola.
+- **Nada vacío que ocupe pantalla:** sin gráficas «Sin datos»; una línea basta.
+- Al agregar algo nuevo a una sección: si no es lo que la mayoría viene a hacer ahí, va plegado.
+
+## 3d. Detalles ordenados (v1.35.0, pedido del usuario con /impeccable layout)
+
+- **Arriba lo que se hace o se corrige; abajo lo de consulta.** Orden: consignatarios → peso total → Hoja de empaque → packing list. Embarque: avisos → hieleras y tallas → órdenes → peso → indicaciones → notas. Lote: avisos → conteo final y cierre → trazabilidad y existencia → plegables.
+- **Las acciones de la pantalla van juntas en el encabezado** (PDF, correo, eliminar), una sola vez. La confirmación de eliminar sale ahí mismo.
+- **Un formulario largo que no siempre se llena se pliega con su estado en el renglón** («⚠ Faltan 8 datos», «137.2 kg de peso bruto», «Ninguna», «2 lecturas · última 58.5 °F»). Se abre solo cuando es lo que toca (la hoja de empaque con todas las hieleras listas; el peso si no cuadra con la orden).
+- **Un aviso rojo abre el plegable** donde está lo que hay que corregir (`data-jump` / `data-jumpto` abren el `details` antes de bajar).
+- **Administración en pestañas:** Usuarios · Catálogos · Informes y respaldo (v1.40.0: sin Maquilas; las maquilas están fuera del programa). En Catálogos, «Eliminar» (rojo con bote, al final de la fila, del tamaño de «Editar») con la confirmación arriba de la tabla; solo se borra lo que nunca se usó, lo demás se oculta. Una pantalla con más de 4 secciones independientes va en pestañas, no seguidas.
+
+## 3e. Textos de los formularios (v1.36.0, /impeccable clarify, el usuario aprobó todo)
+
+- **El error va junto a su campo:** renglón propio debajo del campo, con ícono, que se queda hasta corregir (escribir en el campo lo quita) y se anuncia (`role="alert"`, `aria-describedby`). Nunca en un aviso flotante que se va, ni repetido en otro formulario de la misma pantalla. Los avisos flotantes quedan para lo que no es de un campo (guardado, conexión, «No se puede: el embarque está cerrado»).
+- **Una palabra por cosa:** la talla es «Chica · 491-610» (nombre + rango + punto de color) en todas las pantallas; los rangos del papel (0-650…) solo en el PDF del formato. El tanque es «T1». En Empaque la categoría sigue siendo el color (teclado R, V, B, A).
+- **Nada peligroso viene elegido:** tipo de movimiento («Salida a embarque» dice «solo para corregir»), rol del usuario nuevo, a. m./p. m. sin hora.
+- **Ejemplos con «Ej.»** para que no parezcan datos escritos. Un «0» que sí es el valor por omisión (tallas, tarimas, cajas) se queda.
+- **Lo que pide un campo se ve antes de fallar:** «(0 si no hubo)», «(mínimo 8)», «(opcional)».
+- **Confirmar dice qué se borra** y el botón dice la acción («Eliminar nota», «Eliminar de la orden»), nunca «Sí / No».
+- **Errores técnicos:** qué falló y qué hacer; el detalle técnico, si va, al final entre paréntesis.
+
+## 3f. Ley de Hick y Ley de Fitts (v1.39.0, «actualización Ley de Hick», pedida por el usuario)
+
+Problemas que resuelve: pantallas llenas, no poder regresar, quedar bloqueado sin poder editar, pantallas sin fin, menús anidados, el botón importante escondido.
+
+- **Una acción principal** por pantalla; lo demás discreto o plegado. Grupos de ~7 como máximo.
+- **«‹ Atrás»** en la barra de arriba en todas las pantallas (menos el inicio); en la app instalada en iPhone/iPad también se desliza desde la orilla izquierda. Regresa con lo escrito y el mismo lugar de la pantalla; primero cierra lo que esté abierto encima (vista previa grande de una hoja, Ajustes, menús). Sin «‹ Volver a…» dentro de la página.
+- **Nada se queda bloqueado:** un lote sin entrada o «sin lote» no tiene «Editar» que no deja cambiar el código; arriba de su página sale la tarjeta para arreglarlo: «+ Crear su entrada» (las hieleras pasan solas al guardar) o «Conectar» con una entrada que ya existe. En la tabla de Entrada esa fila dice «Arreglar ›».
+- **Tablas anchas:** las acciones van en la primera columna y se quedan fijas al deslizar.
+- **Lo que no siempre se usa, plegado:** «+ Repartir en otro tanque» en Entrada y en la hoja de Modo piso (se abre solo si tiene datos o un error).
+- **Ley de Fitts** (video que compartió el usuario): acción principal grande y, en tablet y celular, **abajo donde están los pulgares** (`.btn.thumb`); **toda la fila se toca** en las listas; **eliminar lejos de guardar** y discreto pero a la vista (texto rojo con bote, al final de las acciones; como Gmail o iOS), con confirmación que dice qué se borra; lo más usado, más grande.
+- **Corregir colores de varias hieleras** (solo Administrador): pantalla aparte desde la orden; marcar varias o «Las de Rojo», elegir el color, «Ahora → Así queda», confirmar y «Deshacer». El empaque normal no cambia.
+
+## 4. Modo piso
+
+Pantalla de botones grandes para el Encargado de piso (entra directo); el admin lo activa con el interruptor «Modo piso».
+
+| Botón | Flujo |
+|---|---|
+| **Empacar cajas** | Cliente → lote (se salta si hay uno) → una tarjeta por cada caja del cliente y el **teclado fijo** (v1.3.0): a la derecha en tablet horizontal y computadora, abajo en tablet vertical y celular. Se escriben las piezas en el teclado y se toca ROJO/VERDE/BLANCO: la caja se guarda sola, queda con ✔ Completada (borde verde) y el teclado pasa a la siguiente vacía. Tocar una caja guardada la abre en el teclado («Corrigiendo»; el primer número reemplaza al anterior y la categoría guarda la corrección); «Quitar caja» está en el teclado, con confirmación. La caja activa va en cian. |
+| **Registrar entrada** | Hoja de captura: una fila por lote (proveedor y debajo la especie —v1.18.0—, tanque, lote, kg de las 4 tallas, total) y «Más» para temperaturas, kg por caja, desperdicio, fecha y hora. **Desde la v1.8.2 todos son obligatorios**: si la fila ya tiene algo y falta alguno, el botón dice «Más · Faltan N» en rojo. La hoja existe también en la vista completa: al apagar Modo piso estando aquí, te quedas en la misma hoja con las mismas filas. «+ Agregar entrada», «Guardar entradas» guarda cada fila por separado; errores junto al campo; estados Vacía / Sin guardar / ⚠ Revisar / ✔ Guardada. En pantallas angostas o con texto «Muy grande», cada fila es una tarjeta. |
+| **Cerrar embarque** | Paso a paso (v1.21.0): elegir el embarque → 1. revisar las hieleras (empacadas de pedidas, langostas, peso y cuánto va de cada lote) → 2. pendientes, cada uno con su botón a donde se corrige (la hoja de empaque incompleta no impide cerrar) → 3. «Cerrar embarque» (solo el Administrador; el piso ve «Avísale al Administrador»). Al cerrar: «✔ Embarque cerrado» con «Cerrar otro embarque». |
+| **Conteo final** | Paso a paso (v1.21.0): elegir el lote (solo los que faltan por contar, con lo esperado) → 1. kg contados en una casilla grande (Enter avanza; no acepta más de lo esperado y conserva lo escrito) → 2. confirmar con la mortalidad calculada → «✔ Conteo guardado» con «Contar otro lote» y «Corregir» (el Administrador también «Cerrar lote»). |
+| **Temperatura** (v1.17.0) | Abre la pantalla normal de Temperatura sin menú. Dice cuántas lecturas van hoy (incluye las de las entradas). Es el quinto botón: en tablet y computadora va a todo lo ancho. En Modo piso las casillas y botones de «Nueva lectura» miden 60 px (v1.17.1). |
+
+Estilo iOS: tarjetas con degradado, cuadros de ícono y flecha ›, buena vista en tema oscuro. **Encabezado (v1.58.0, imagen del usuario):** azul marino con logo | título y maquila ▾ | campana, Ajustes y perfil; debajo una franja clara como pestaña de fólder con «Modo piso» y «Vista 3D». En celular las tarjetas van en renglón (ícono | texto | flecha).
+
+## 5. Vista completa
+
+- Menú lateral navy fijo en tablet y computadora (más angosto en iPad: 184 px, v1.39.0); en celular se oculta y se abre con ☰. Íconos sin números (v1.33.0). Desde la v1.39.0: **Centro de operaciones**; Operación (Entrada, Órdenes, Empaque, Embarque, Temperatura); Revisión (Mortalidad final, Hojas); Modo (interruptor de Modo piso, al final). Panel general está en el botón de maquila y Administración en el círculo del perfil.
+- En celular (menú escondido), la barra de arriba dice dónde estás: junto a ☰ va el ícono y el nombre de la sección («Empaque», «Panel», «Temperatura»…), igual que en el menú. Solo el nombre: el usuario pidió quitar «Paso 3 de 5» (13/oct).
+- Administración (v1.35.0): pestañas Usuarios · Catálogos · Informes y respaldo (Maquilas se quitó en la v1.40.0).
+- Barra superior: buscador, botón **Ajustes** (siempre visible, por accesibilidad) y círculo con la inicial del usuario.
+- Menú del círculo: nombre, correo, rol, **Administración** (solo admin), **Cerrar sesión** y la versión. **Ajustes no se mueve al menú**: se queda en la barra.
+- **Ajustes:** panel que **deja ver la pantalla de atrás** (translúcido, sin oscurecer; en celular, hoja desde abajo de máx. 66 % de alto). Tema claro/oscuro/del equipo y tamaño de texto con **deslizador de 5 tamaños** (Muy chico 11 px · Chico 13 · Normal 15 · Grande 17 · Muy grande 20; v1.39.0, sin «Vista previa»; las casillas nunca bajan de 16 px). Esc, ✕ o tocar fuera lo cierran; el foco regresa al botón. Abrirlo no borra lo que se estaba capturando.
+- **Centro de operaciones** (v1.39.0, une Panel y Formatos; **centro de mando, no otro menú**): título y maquila → 4 números que se tocan (En tanques, Recibido en 7 días, Hieleras empacadas, Embarques abiertos) → planta 3D con el tablero de tanques → plegados (órdenes, tablero de lotes, actividad). **Sin lista de avisos** (están en la campana; el usuario no quiere que lo «inunde») y **sin cuadrícula de accesos a los módulos** (están en el menú; se probó una franja de colores y el usuario la quitó: no repetir).
+- En celular, las filas de Empaque se vuelven tarjetas.
+
+## 6. Accesibilidad (mínimos)
+
+- Lighthouse accesibilidad = 100 en las 14 pantallas (comprobar con `pruebas/accesibilidad.mjs`).
+- Contraste AA; estados con ícono y texto, nunca solo color.
+- Objetivos táctiles ≥ 44 px (botones 48, Modo piso ~60). Campos ≥ 16 px (evita zoom en iPhone).
+- Foco visible, «Saltar al contenido», orden de títulos correcto, encabezados de tabla con texto (`aria-label` si la columna es de acciones), etiquetas en todos los campos.
+- Diálogos y menús accesibles: `role`, flechas, Esc, foco atrapado y de regreso.
+- Debe verse bien en 390, 820 y 1440 px y con texto de 20 px.
+- Teclado numérico en tablet (`inputmode`), texto seleccionado al tocar un campo.
+
+## 7. Lo que el usuario pidió y se mantiene
+
+- Logo pequeño y blanco en el menú; menú navy con pasos numerados e íconos de dibujo.
+- Campos blancos, flechas propias, números sin flechitas.
+- Azul solo en secciones de marca; fondo y textos neutros.
+- Pendientes y discrepancias en rojo llamativo, con ícono y texto. Mortalidad final no va en rojo como faltante.
+- Colores de consignaciones parecidos a los originales; **siempre el del consignatario en Administración** (v1.24.0).
+- **Cada maquila con su logotipo** (emblema + «MAQUILA» + nombre) y una franja de su color (v1.24.0).
+- **Antes de juntar o separar embarques se enseña cómo queda (Ahora → Así queda) y se puede deshacer** (v1.24.0). Nada de botones que cambian cosas grandes sin decir qué hacen.
+- **La orden dice arriba lo que falta por empacar, por talla** (v1.24.0).
+- **Cada camión en su pestaña, con su propio PDF**, cuando hay dos o más (v1.26.0). Con uno, como antes.
+- **Lo más viejo primero**: en Empaque los lotes salen ordenados y el más viejo ya elegido, con «usar primero»; los que pasaron los días de su proveedor, en rojo y antes que todos (v1.27.0).
+- **Llenar hieleras y tinas solo con el teclado** (v1.29.0; **igual en Recepción y Empaque desde la v1.46.6**, usuario: «la letra guarda y pasa»): número → letra del color (B, R, V, A) guarda y pasa a la siguiente. Enter con número y sin talla usa la última talla; Enter en una vacía no hace nada; «Siguiente ›» del teclado de la app es como Enter (en una vacía pasa).
+- **Guardar con una tina u hielera sin talla (v1.46.6, usuario: «no guardar y avisar claro»):** no se guarda; aviso rojo junto al botón Guardar que dice cuál, con sus tallas para tocar ahí y «Borrar». Nunca brincar a la tina sin decir nada.
+- **Tarima 3D (v1.46.6; desde la v1.46.7 reemplaza las tarjetas por talla con cuadritos, pedido del usuario):** en «Hieleras por talla», las tarimas de la línea con las hieleras empacadas de color y las que faltan punteadas; debajo, una línea por talla (N de M · Faltan / ✔ Lista / De más).
+- **La hoja de empaque se cierra al completarla** (v1.29.0): queda una tarjeta corta con «Ver o corregir hoja». Horas en 12 h con a. m./p. m.; placas en mayúsculas; tanques de origen se tocan.
+- **El aviso (toast) sale debajo de la barra de arriba**, nunca encima (v1.29.0).
+- **Mover hieleras en el camión mismo** (v1.29.0), no en otra cuadrícula abajo.
+- **Campana de notificaciones con contador**: lo que falta y lo reciente; cada una lleva a donde se resuelve. Lo que falta no se descarta (se quita al resolverlo) (v1.26.0).
+- Optimizada para tablet; se adapta a computadora y celular.
+- El admin **no** entra en Modo piso automáticamente.
+- Un usuario no técnico debe poder usarla: textos simples, un paso a la vez.
+
+### Tanques en 3D (v1.31.0)
+- En Entrada (plegado), en el Centro de operaciones (debajo de los 4 números) y en Panel general (**debajo de los 4 totales**, v1.39.0). Se prende y se apaga con **su propio ícono (cubo «3D»)**, siempre en el mismo lugar, y el equipo lo recuerda. El tablero plano sigue abajo y es el que se usa con teclado o lector de pantalla.
+- Color de la canasta: **solo la talla** (listón), con los colores de la maquila de esa canasta. La maquila se dice con texto (letrero de cerca, tarjeta de la canasta), nunca con color.
+- Un toque elige; arrastrar gira (no abre nada). Botones de cámara de 48 px para guantes.
+- **Ficha del tanque (v1.46.5):** tocar un tanque del tablero abre su ficha; tocar el mismo otra vez la cierra. Abre, cambia y cierra con animación (nunca de golpe) y se lleva a la vista sin esconder la tarjeta tocada.
+
+## 8. Lo que el usuario rechazó (no repetir sin preguntar)
+
+- **Calendario y reloj del teléfono** para fechas y horas (18/oct): tardan, se traban y ya no abren. Se escriben (dd/mm/aaaa, HH:MM) con «Hoy»/«Ahora».
+- Botones que **borran avance con un solo toque** («Quitar guardadas de la lista», 18/oct).
+- **Descargar CSV** del packing list (no le sirve).
+- Esperar a «Guardar hieleras» en la vista completa: cada hielera se completa sola.
+
+- Rediseño oscuro con colores semánticos y números gigantes (revertido).
+- Galería de fotos en el Panel (revertida).
+- Modo piso de **una caja a la vez** (quiere varias).
+- Entrada en Modo piso con **una ventana por entrada** (asistente de pasos); quiere capturar varias a la vez (13/oct).
+- Que las cajas guardadas **desaparezcan** de la pantalla.
+- Que Ajustes **oscurezca o tape** la pantalla.
+- ~~Más de 3 tamaños de texto~~ **Cambió el 7/nov/2026 (v1.39.0) a pedido del usuario:** 5 tamaños, también más chicos (hasta 75 %).
+- Mover el botón de Ajustes al menú del perfil.
+- ~~Teclado numérico propio en Modo piso (se quitó el 12/oct).~~ **Regresó el 13/oct a pedido del cliente**, distinto: fijo en pantalla (no aparece y desaparece), en todas las vistas de Empaque. Ver §4 y `HISTORIAL.md` (v1.3.0).
+- Cambiar muchas cosas sin validarlas: el equipo sintió que se trabajaba «sin rumbo».
+- **Textos que suenan a app sin terminar o a información que falta** (17/oct): «Todavía no hay…», «Aún no hay…», «Sin datos todavía», «(de una versión anterior)», «escrito a mano, de antes», explicaciones largas de lo que falta. Los vacíos se dicen corto («Sin lotes», «Sin lecturas») y los avisos de pendientes solo con lo necesario («Lote X · sin entrada» + botón). Los mensajes de conexión («cambios que todavía no se suben») sí se quedan.
+
+## Avisos de la campana (v1.47.0, pedido del usuario)
+
+«Errores sin significado, como el foco de check engine»: cada aviso dice **qué pasó** (título), **qué hacer** (una línea) y el botón lleva **el verbo** («Empacar ›», «Completar hoja ›», «Ver tanque ›»), nunca «Ir». Al tocarlo, lleva a la parte exacta de la pantalla, con su plegable abierto. Lo que la app puede resolver sola no se avisa (ej. de qué tinas salió lo empacado: se saca solo y se puede corregir). Una lectura vieja no es una alarma de hoy.
+
+## Empaque: la pantalla es para llenar hieleras (v1.48.0, diseño del usuario)
+
+Arriba: avance y lotes a la izquierda y la tarima actual chica a la derecha, **encima del teclado y de su mismo ancho** (3D, estado, conteo por color, «Ver detalle»; v1.57.0, dibujo del usuario); los lotes como tarjetitas de 2 líneas y «+ Lote sin recepción» / «Empacar sin lote» como enlaces discretos junto a «Lote»; **debajo, todas las hieleras a todo lo ancho hasta el teclado** (v1.57.0, dibujo del usuario: «quiero que se llene la pantalla»). Antes las hieleras iban solo en la columna de la derecha (¾) y la de la tarima quedaba vacía. Las hieleras van en columnas fijas de 10 numeradas de arriba abajo (pantalla y PDF, como las tinas). Si las columnas no caben (celular, o muchas hieleras), van en un recuadro que se desliza de lado con flechitas ‹ › en la orilla y se mueve solo a la hielera activa; lo mismo las tinas de Recepción (v1.57.0). El teclado es una herramienta: se abre a un lado de las hieleras (en celular, abajo) sin tapar nada y se cierra con ✕; «Guardar hieleras» en la barra fija de abajo, con el teclado como botón redondo solo con ícono y sin texto de instrucción (v1.57.0, el usuario lo pidió). La barra lateral es la misma en toda la app: no se cambia por pantalla.

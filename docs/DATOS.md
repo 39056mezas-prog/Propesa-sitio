@@ -1,0 +1,181 @@
+# DATOS.md · Modelo de datos
+
+Todo vive en el objeto global `ST`. **Desde la v1.8.7, `ST.W = {h, g, p, c}`** es el peso estándar de la caja (hielera vacía, gel, producto, caja de cartón; kg). Si no existe se usan 1.4, 1.5, 16 y 0.7. **Desde la v1.4.0 la copia que vale está en la base compartida** (Supabase, `public.app_records`, ver `SUPABASE.md`); cada equipo guarda una copia en IndexedDB (base `propesa`, registro `propesa-c1`, desde la v1.6.0; antes en `localStorage`) para trabajar sin internet. En el modo local de pruebas sigue siendo `localStorage['propesa-v4']`. El usuario en sesión (`me`) no va dentro de `ST`: desde la v1.2.5 se guarda aparte en `propesa-ses` (solo su id y la hora de vencimiento) y la pantalla con los borradores en `propesa-ui` (ver `ARQUITECTURA.md` §9).
+
+## 1. Forma de `ST`
+
+```js
+ST = {
+  // bandera y contador (v1.6.0: se quitaron PK, ORc, BN y N, que ya no se usaban)
+  E0: 1,                      // datos de demo ya vaciados
+  RN: 120,                    // contador de lotes de antes (id 'R-0121'); desde la v1.38.0 ya no se usa
+
+  U: [{ id, name, email, role /* 'admin'|'piso'|'consulta' */, notify /* recibe informes */ }],  // sin contraseñas (v1.4.1): las guarda Supabase
+
+  R: [{ id /* 'R-0mw5a9pn2wxv5wl' (v1.38.0; antes 'R-0121') */, lot /* 'WLRCO061026B' */, origin /* proveedor */, tank /* 'T1'..'T6' */,
+        rdate /* 'YYYY-MM-DD' */, time /* 'HH:MM' */, date /* 'dd/mm/aaaa' */,
+        tn /* [[tina, talla, gramos]] (v1.42.0) */, tts /* {T1: °F} agua de cada tanque */, tpn, tpx /* °F producto mín/máx */,
+        hf /* hora final */, mu, db, rz /* kg muerta, débil, rechazo (aparte) */,
+        final /* kg conteo final | null */, closed }],
+
+  L: [{ id, t, type /* 'RECEPCION'|'SALIDA_EMBARQUE'|'REVERSA' */, lot,
+        size /* '491-610'|'611-850'|'851-1220'|'1221-up' */, m /* GRAMOS */, rev /* id revertido */, rc }],
+
+  B: { [lot]: [{ c /* piezas vivas */, k /* 'R'|'V'|'B' */, d /* índice en P */,
+                 o /* 'ordenId.lineaId' */, seq /* número de caja */, ps /* lugar 1..N en Modo piso */ }] },
+                 // SOLO cajas ya empacadas; en tanque no hay cajas
+
+  OR: [{ id, etd /* 'YYYY-MM-DD' */,
+         lines: [{ id, city /* 'PVG'… */, cons /* índice en CONS */, cli /* 'HXH' */, boxes }],
+         sh: { 'PVG|0': índiceEnP } }],          // a qué embarque va cada grupo ciudad|consignatario
+
+  P: [{ n /* 'PVG · YISHUNHAI · 12/10 + 13/10' */, z0, col /* color */, exp,
+        h /* hieleras */, z: [4 tallas en hieleras], c: [[concepto, kgUnit, cantidad]],
+        alive /* vivas al llegar | null */, closed }],   // embarques / consignaciones
+
+  O: [{ subject, t, to: [correos], body, pn /* nombre del embarque */, att /* nombre del PDF */, pu /* id fijo del embarque (v1.6.0): el PDF se busca por él; los informes viejos, por nombre */ }], // informes de cierre
+
+  T: [{ id, t /* 'YYYY-MM-DDTHH:MM' */, tank, a /* agua °F */, s /* superficie */, p /* producto */, by }],
+
+  M: { [clave]: [{ id, t, by, text, ref, imgs: [dataURL] }] }
+     // claves: 'recepcion', 'lote:<lote>', 'emp:<o.l>', 'emb:<i>', 'cierre', 'temp'
+}
+```
+
+`seed()` devuelve un `ST` vacío **sin usuarios** (`U:[]`) → la app pide crear el Administrador.
+
+## 2. Convenciones
+
+- **Kilos en gramos** (`m`); se muestran en kg con `f()`.
+- **Fechas:** ISO (`YYYY-MM-DD`) para guardar y comparar; `dd/mm/aaaa` solo para mostrar (`fd()`). Siempre fecha **local** con `dLoc()`; nunca `toISOString()` (da el día equivocado de noche en Tijuana).
+- **IDs (v1.4.0):** para que dos equipos no choquen, los ids nuevos no son contadores:
+  - `uidN()` = número único basado en la hora (≈ 16 cifras): movimientos (`L.id`), cajas (`b.seq`), órdenes (`OR.id`), notas (`M[].id`), lecturas (`T.id`).
+  - `uidS()` = texto que se ordena por fecha: embarques (`P.u`) e informes (`O.u`). Los que venían de antes reciben `legU(i)` (`000000000` + índice) y quedan primero.
+  - Lotes: la clave compartida es el **código del lote**. `R.id` es `'R-'+uidS()` desde la v1.38.0 (antes `'R-0121'` con `ST.RN`, que dos equipos repetían). Las entradas del lote guardan ese id en `rc`: si un lote tiene entradas sin revertir con más de un `rc`, se capturó en dos equipos y `lotWarn` avisa (`lotCaps`, aviso `d:` en `R.av`).
+  - Líneas de una orden: `max+1` dentro de su orden (viajan dentro del registro de la orden).
+  - Embarques: dentro de la app siguen por **índice** en `ST.P` (`b.d`, `o.sh`, `emb:<i>`); en la base viajan con `P.u` y al armar `ST` se ordenan por `u`, así el índice es el mismo en todos los equipos.
+- **Campos internos de la sincronización** (no editarlos a mano): `b._d` y `o._sh` guardan referencias a un embarque que todavía no llega; `ST._orph` guarda registros que todavía no se pueden colocar (por ejemplo, una caja de un lote que aún no llega). `encodeST` los vuelve a subir tal cual para no borrarlos.
+- **Existencia de un lote** = suma de `L` por talla (`bal`). Empacar no descuenta.
+- **Embarque con varias órdenes:** varias entradas de `o.sh` apuntan al mismo índice de `P`; `syncShipIdx` suma hieleras; `moveGroup` une/separa y mueve `b.d`; `dropShip` borra embarques vacíos y **reindexa** (actualiza `b.d` y `o.sh`).
+
+## 3. Cambiar la estructura (obligatorio)
+
+1. Agrega el campo con un valor por defecto que no rompa datos viejos.
+2. Si hay que transformar datos existentes, crea una migración con su bandera (como `PK`, `ORc`, `E0`) y llámala al cargar.
+3. Agrega el campo a **`cleanST()`** con su validación (tipo, rango, longitud). Lo que no esté en `cleanST` se pierde al restaurar un respaldo.
+4. Agrega una prueba en `pruebas/` con datos viejos y nuevos.
+5. Documenta aquí.
+
+## 4. Registros compartidos
+
+`encodeST()` convierte `ST` en registros (`R/<lote>`, `L/<id>`, `B/<seq>`, `OR/<id>`, `P/<u>`, `O/<u>`, `T/<id>`, `M/<id>`, y desde la v1.13.0 `D/disp`, que se calcula con `dispCalc()` y no vive en `ST`) normalizados con `WN` (orden fijo de campos), y `decodeST()` hace lo contrario con un orden que no depende del equipo. `ST.U` no viaja en registros: sale de `profiles`. Si agregas un campo a `ST`, agrégalo también en `WN` (si no, ese campo no se comparte).
+
+## 5. Respaldo
+
+- **Descargar respaldo** (Administración) = `ST` completo en `.json`.
+- **Restaurar** (solo Administrador, en Administración): pide confirmación, pasa por `cleanST(d, true)` (descarta código, imágenes no válidas, índices fuera de rango, duplicados; los usuarios del respaldo se ignoran) y **reemplaza los datos de todos los equipos**.
+- **Borrar todos los datos: ya no existe en la app** (v1.8.5, decisión del usuario). Solo a mano desde Supabase (`SUPABASE.md` §9).
+- **Datos viejos de cada tablet** (antes de la v1.4.0) se quedan en `propesa-v4` sin mezclarse; Administración permite descargarlos o borrarlos.
+- En el modo local de pruebas, restaurar y borrar funcionan como antes (solo en ese navegador).
+- Ejemplos válidos: `pruebas/datos/backup.json` (con usuarios de prueba, solo para pruebas) y `pruebas/datos/seed.json`.
+
+## 6. Tamaño
+
+Con un año de datos sin fotos: ~2.2 MB. **Desde la v1.6.0 la copia de cada equipo vive en IndexedDB**, que aguanta cientos de MB: con 45 fotos (~5.4 millones de caracteres) se guarda completa (`sincronizacion_t.py`). Antes vivía en `localStorage` (5 MB, la mitad en iPad), se borraba sola con unas 40 fotos y no avisaba. Si el navegador no deja guardar la copia, aparece «No se pudo guardar la copia de este equipo» y lo capturado se sigue subiendo a la base. La cola de cambios por subir (`propesa-out`) sigue en `localStorage`, que se escribe al instante. Desde la v1.8.0 las fotos ya no van dentro de los datos: viven en el espacio de archivos de Supabase y la nota guarda `sb:notas/<id>/<n>.jpg` (ver `SUPABASE.md` §8); la copia de cada equipo guarda aparte las fotos que ya vio (`F/<ruta>`). En el modo local de pruebas, si `save()` falla aparece el aviso rojo de memoria llena.
+
+## v1.9.0 · hoja de empaque e indicaciones de carga
+- `OR[].f` (opcional): `{hi,hf,re,ev,ob,pl,ch,tel,tp,to,tq}`, todo texto. `hi`/`hf` en `HH:MM`; `ev` ∈ `S|NS|ND|NA`. Se limpia con `f6Norm` en `cleanST` y en `WN.OR`; `decodeST` la copia. Sin migración: las órdenes viejas simplemente no la tienen.
+- `P[].ob` (opcional): indicaciones para la carga, hasta 500 letras. En `cleanST` y `WN.P`.
+- Ninguno requiere cambios en Supabase: viajan dentro de `OR/<id>` y `P/<u>`.
+
+## v1.10.0 · líneas de orden por consignatario
+- `OR[].lines[]` nuevas: `{id, city, cons, boxes, z:[B,R,V,A], kp, tar, cc}`; `cli` solo en líneas viejas. `lnX` deja pasar solo números válidos (tallas enteras ≥ 0, `kp` 0–100, `tar`/`cc` enteros ≥ 0).
+- `W` (peso estándar) agrega `t` (tarima, 9.9 kg por omisión).
+- `P[].c` = componentes de las líneas del embarque sin renglones en 0; `P[].z` = suma de tallas de sus líneas cuando todas las tienen.
+
+## v1.11.0 · proveedores y lotes sin entrada
+- `ST.PV` (opcional): `[{id, n nombre oficial, k clave del lote (1–4 letras), rfc, per permiso de pesca, dm días máximos en tanque (1–60, opcional desde la v1.27.0; sin dm = sin límite), off oculto}]`. Si no existe se usa `PV0` (Ensenada CO, Emancipación EM, Leyes de Reforma LE); se crea al primer cambio en Administración. Ids nuevos con `uidN()`. Se comparte como un registro por proveedor `V/<id>` (`WN.V = pvClean`); `cleanST` la limpia (`pvClean`, sin ids repetidos).
+- `ST.ES` (opcional, v1.18.0): `[{id, n nombre, en nombre en inglés para compradores, off oculta}]`. Si no existe se usa `ES0` (Langosta Roja · Red lobster, id 1); se crea al primer cambio en Administración → Especies. Ids nuevos con `uidN()`. Un registro por especie `E/<id>` (`WN.E = esClean`); `cleanST` la limpia (`esClean`, sin ids repetidos).
+- `R[].sp` (opcional, v1.18.0): id de la especie. Sin `sp` = especie 1 (`esOf(r)`). Los lotes nuevos siempre lo guardan.
+- `R[].pv` (opcional): id del proveedor. `R[].origin` sigue guardando el nombre (lo usan PDF y reportes, y es lo único que tienen los lotes de antes). `pvMatch(r)` da el proveedor por `pv` o, en un lote de antes, por nombre exacto.
+- `R[].ne` (opcional): lote **sin entrada** (se empezó a empacar sin recepción): sin kilos, `rdate` vacío. Al capturar su entrada con el mismo código, `addLot` lo completa (conserva `id` y hieleras) y quita `ne`.
+- Los dos campos solo se escriben cuando existen: los lotes de antes se suben exactamente igual. No cambió Supabase.
+
+## v1.12.0
+- `R[].sl` (opcional, con `ne`): lote provisional «sin lote» (`SIN-LOTE-ddmm`), sin proveedor ni tanque (`tank:''`). `neJoin` pasa sus hieleras (`ST.B`) y notas (`M['lote:…']`) a un lote con entrada y lo borra.
+- `OR[].lines[].z` ahora es opcional también en líneas nuevas (tallas no capturadas): el embarque toma las tallas de lo empacado (`zLive` en `save`).
+- Fechas y horas se siguen guardando `YYYY-MM-DD` y `HH:MM`; en pantalla se escriben dd/mm/aaaa y HH:MM (`pD`, `pH`). En la hoja de Modo piso `r.d.rdate` guarda lo escrito (dd/mm/aaaa) y se convierte al guardar (`penD`).
+
+## v1.14.0 · varios camiones y acomodo a mano
+- `P[].tk` (opcional): camión de la consignación, texto de `uidS()`. Sin tk = el primer camión (los datos de antes quedan en uno solo). `trucks()` = camiones con consignaciones abiertas, ordenados; se muestran como Camión 1, 2…
+- `P[].ly` (opcional): 10 enteros 0–999, hieleras de la consignación en cada celda (índice = fila×5 + columna; columna 0 = cola, 4 = cabina; capacidades 15/20/20/25/25 por columna). Si ninguna consignación abierta del camión tiene `ly`, el acomodo es automático.
+- Los dos en `cleanST` y `WN.P` (solo si son válidos) y `decodeST` copia `ly`. Viajan dentro de `P/<u>`; no cambió Supabase.
+
+## v1.15.0 · color de cada consignatario
+
+- `ST.CC` (opcional): `{índice en CONS: '#rrggbb'}`. Solo el Administrador lo cambia (Administración → Consignatarios). `syncShipIdx` copia ese color a `p.col` de los embarques abiertos; los cerrados conservan el suyo. Sin color elegido, `p.col` sigue saliendo de `XC` por turno. Se comparte como `C/colores` (`WN.C = ccClean`: solo índices de `CONS` y `#rrggbb`); `cleanST` la limpia igual. Sin migración: es opcional.
+
+## v1.19.0 · maquilas, tallas, salidas, consignatarios, envíos y precios
+- **Maquilas:** `ST` es la maquila abierta (`MQ`, recordada en `propesa-mq`); las demás viven en `STX = {id: ST de esa maquila}`. `mqSet(id)` cambia: pasa a la nueva lo compartido (`SHF`: `U, W, CC, PV, ES, T, MQL, CN, DS`) y guarda lo que se estaba escribiendo de cada maquila (`DRX`). `withST(st, fn)` corre algo con otra maquila (Panel general, subir registros). Lista: `ST.MQL = [{id, n, off}]` (sin ella, `MQ0`: PROPESA 1, Abel 2, David 3, Luis Arce 4). Registros: los de la maquila 1 sin prefijo (como siempre); los de otra con prefijo `q<id>:` (`q2:R/<lote>`). Compartidos sin prefijo (`SHT`: `W C V E T Q D K X`); `D/disp` solo de la maquila 1. `encodeAll()` / `mqParts()` arman y separan; `applyRows` solo vuelve a armar las maquilas que cambiaron. Copia del equipo (IndexedDB): `{st, since, x: STX, mq}`. Modo local y respaldo: `ST` + `_X` (otras maquilas) + `_MQ`. Un respaldo viejo (sin `_X`) es solo PROPESA.
+- **Tallas:** `ST.SZ = [{id, k, n, r, c, cn, en, off}]` por maquila, registro `Z/tallas` (con prefijo). `id` = talla de los movimientos (`L.size`), `k` = categoría de la hielera (`b.k`). Sin `ST.SZ` = `SZ0` (las 4 de siempre + Despatada `desp`/`D`). No se borran ni se reordenan: `z` de líneas y embarques es por posición (las viejas de 4 se leen con 0 en las nuevas). `S, RC, TKEY, TNM, SZC, ZBG, ZFG, SL, ZEN, SON` salen de la lista (`szSync`, también arma su CSS en `#szcss`). `WN`/`cleanST` ya no exigen tallas de una lista fija (cada maquila tiene las suyas): validan el formato.
+- **Movimientos:** `LTYPES` + `CONGELACION, BASURA, RECUPERACION, DEBIL`; `L.nt` (nota o folio, 120).
+- **Consignatarios y destinos:** `ST.CN = [{k, n, p, a, c, u, off}]` (posición = número que guardan las órdenes) en registros `K/<posición>`; `ST.DS = [{c, n, off}]` en `X/<código>`. Sin ellos, `CONS0` y `PORTS0`. `CONS` y `PORTS` salen de ahí (`cnSync`). Las líneas de orden se validan por formato (ciudad de 2–5 letras, consignatario 0–999).
+- **Embarque:** `P.ta` (temperatura de arribo, texto 30), `P.mc` (% de mortalidad que reporta el cliente, 0–100).
+- **Lote:** `R.pr = {u, d, f, nt}` (USD/kg, USD/kg de despatada, `F`/`S`, nota).
+- **Compradores:** `D/disp.n = [[inglés, rango, color]]` de las tallas de PROPESA.
+- **Solo inventario (v1.45.2):** `D/disp.t = {T1…T6: [gramos por talla]}` es el disponible por tanque. Lo pedido (órdenes sin salir) se quita del lote más viejo al más nuevo, por talla. El 3D de esa pantalla arma tinas solo con tanque, talla y kilos (`dispOcc()`), sin lote, maquila, días ni proveedor.
+- **Precio en la base:** `R.pr` no viaja dentro de `R/<lote>`: va en su propio registro `$/<lote>` (`{lot, u, d, f, nt}`; `q<id>:$/<lote>` en otra maquila). `decodeST` lo vuelve a poner en su lote. La base solo se lo da al Administrador.
+- **(Quitado en v1.43.0)** Traslados entre tanques: `ST.TQ = [{id, t, lot, de, a, kg, by, nt, tt, kb}]` por maquila, registros `TQ/<id>`. `nt:'Entrada'` = el otro tanque capturado en la entrada (`tt`, `kb`: su temperatura y kg por caja; salen en Temperatura y en la tabla de Entrada como «1/2», «57.6/60.3», «34/36»). `tqDist(lote)` = kg de hoy por tanque (todo empieza en `r.tank` y cada traslado pasa sus kg sin pasar de lo que hay); `tqShare(lote, tanque)` = proporción para repartir las tallas.
+
+## v1.20.0 · avisos y especie de la orden
+- **Lote:** `R.av` = avisos aceptados con «Está bien así»: `'f:<aaaa-mm-dd>'` (fecha que no cuadra con el código) y `'h:<HH:MM>'` (hora de madrugada); se guardan con el valor aceptado para que un cambio vuelva a avisar (`avClean`, `lotWarn`, `lotDt`).
+- **Embarque:** `P.sf = [[lote, talla, gramos, motivo]]` = lo que `salidaAuto` no pudo descontar al cerrar (`ne` sin entrada, `c` lote cerrado, `b` no alcanzó). Solo en embarques cerrados (`sfClean`); reabrir lo borra.
+- **Orden:** `OR.sp` = especie (id de `ES`). Sin `sp` = especie 1 (`ordSp`). `ordLots(o)` = lotes abiertos de esa especie.
+- **Compradores:** `D/disp.s = [[nombre, gramos por talla, apartado sin talla?]]`; lo pedido ya resta de su especie.
+
+## v1.25.0 · varias maquilas en una orden, tanques por talla, salidas con fecha
+- **Hieleras de otra maquila:** en `ST.B` de la maquila de la orden, con clave `LOTE@idMaquila` (`XLR`, `xk`). `R_`/`bal` la resuelven en `STX[id]` (`xR`, `xBal`; la talla por posición). Viaja en `B/<seq>` con `lot:'LOTE@id'`; `decodeST` y `cleanST` la conservan aunque el lote no exista en esta maquila. `salidaAuto` descuenta del `L` de esa maquila (`rc:'E/<u>'`, nota con maquila y embarque) y marca `ENC_X[id]` para subirla; `salidaOff(u)` la quita de todas.
+- **(Quitado en v1.43.0)** Traslado de la entrada por talla: `TQ.z = {talla: kg}` (`tqZc` en `cleanST` y `WN.TQ`). `tqDistZ(l)` = {talla: {tanque: g}}; `tqDist(l)` suma tallas; `tqZ(l,t,z)`. Traslados sin `z` (de antes o «Pasar a otro tanque») reparten en la proporción del tanque de origen.
+- **Movimientos:** tipo `RECLASIFICACION` («Cambio de talla», en pares − / +; no es salida). Las salidas manuales pueden llevar fecha pasada: `L.t` = «dd/mm/aa, 12:00».
+- **Lote:** `R.av` acepta `c:<lote>` (aviso de código aceptado). Corregir el código (`lotRename`) cambia `R`, `L`, `TQ`, `B` y notas; solo sin hieleras.
+- **Camiones:** `tOpen()` = embarques abiertos de todas las maquilas; `P.tk` y `P.ly` se guardan en la maquila de cada embarque (`tDirty`).
+- **Mortalidad:** `espK(l)` = existencia sin despatada (esperado del conteo final); `calc(l)` agrega `desp` (despatada recibida), `mer` y `pm`.
+- **Temperatura:** `TZS.a` (agua) y `TZS.p` (producto), 5 zonas cada una; `tZv(v,k)` zona más alta, `tLv` su nivel, `tOut(v,k)` = Alerta o Crítico, `tAdv` = Advertencia; `TZI` = referencia de la industria (solo se muestra).
+- Sin cambios en Supabase.
+
+## v1.40.0 · Eliminar en Catálogos (sin cambios de estructura)
+- `cdDel` quita el elemento de `ST.PV`, `ST.ES`, `ST.DS`, `ST.SZ` o `ST.CN` (su registro `V/`, `E/`, `X/`, `Z/tallas` o `K/<n>` se borra o cambia en la base como cualquier otro). Solo si `cdUse` no encuentra nada que lo use en ninguna maquila.
+- **Talla en la posición i:** se quita `z[i]` de `OR[].lines[].z` y `P[].z` de esa maquila (ya valían 0). No se borra una talla de en medio si otra maquila tiene hieleras `LOTE@esta` (esas hieleras toman la talla por posición).
+- **Consignatario en la posición i:** en todas las maquilas, `lines[].cons > i` baja 1; las llaves `ciudad|n` de `OR[].sh` y `OR[]._sh` también; `ST.CC` se recorre. Los registros `K/<n>` quedan recorridos (el último se borra).
+- **Destino:** se quita de `p` de los consignatarios que lo tenían (no se borra si es el único destino de alguno).
+- **Maquilas:** `ST.MQL` ya no se cambia desde la app (sin pestaña Maquilas); se da de alta a mano (`SUPABASE.md` §10).
+
+## v1.42.0 · Recepción por tinas
+- **Tinas:** `TNT = 30` por tanque; la tina `n` es del tanque `tnTk(n) = 'T' + ceil(n/30)` (T1 = 1–30 … T6 = 151–180). La ocupación se comparte entre maquilas (`tnOcc()` lee `ST` y `STX`).
+- **En el lote (`ST.R[]`), campos nuevos** (los limpia `recX` dentro de `cleanST` y `WN.R`):
+  - `tn: [[tina, tallaId, gramos], …]` — lo que entró a cada tina (una tina = una talla; gramos enteros). Un lote con `tn` es «por tinas»; sin `tn` es de antes («kg sin tina»).
+  - `mu`, `db`, `rz` — kg de langosta muerta, débil y rechazo (aparte, sin tina). La despatada se guarda como movimiento `RECEPCION` de la talla `desp`, como antes.
+  - `tts: {T1: °F, …}` — temperatura del agua de cada tanque usado; `tpn`, `tpx` — temperatura mínima y máxima del producto (°F); `hf` — hora final (`time` sigue siendo la hora inicial).
+- **Movimientos de tinas:** `ST.TS = [{id, t, lot, n, g, a?, by, nt?}]` — `g` gramos que salieron de la tina `n` (al empacar); con `a`, se movieron a la tina `a`. Registro compartido `TS/<id>` (con prefijo `q<id>:` en otra maquila); `tsClean` lo valida. Lo que hay hoy en cada tina = `tnNow(r)` (entrada − salidas ± movimientos); una talla del lote con saldo 0 libera sus tinas.
+- **Renombrar o borrar un lote** cambia o quita también sus `TS`.
+- **Inventario desde 0:** no hay migración: la base se vació antes de la v1.43.0.
+
+## v1.43.0 · Sin lo viejo (la base ya está en cero)
+- **Se quitó del lote:** `tempT`, `tempP`, `kgbox`, `desp` (los reemplazan `tts`, `tpn`/`tpx` y la talla `desp`). `cleanST` y `WN.R` ya no los guardan.
+- **Se quitó `ST.TQ`** (traslados de kg entre tanques): cada tina dice su tanque y una tina se mueve con `TS` (`a` = tina nueva). Registros viejos `TQ/<id>` que sigan en la base se dejan como están (no se leen ni se borran).
+- **Tanques de un lote:** `tqDistZ(l)` = `tnDistZ(r)` (solo tinas); un lote sin recepción (`ne`) no tiene tanque.
+- **Historial (HCN):** etiquetas nuevas `tts`, `tpn`, `tpx`, `tn`, `mu`, `db`, `rz`, `hf`.
+
+## v1.49.0 · Correos (compartido, como proveedores y consignatarios)
+- `ST.NC = [{id, n nombre, e correo, a área, mq?}]` → registros `NC/<id>`. `mq` = solo recibe lo de esa maquila (sin `mq` = todas).
+- `ST.NG = [{id, n, m:[fichas]}]` → `NG/<id>`. Fichas: `c:<id>` contacto, `u:<id>` usuario, o un correo.
+- `ST.NE = {rec|ord|emp|emb|temp|otro: {m:'btn'|'rev'|'auto', to:[fichas], cc:[fichas], s asunto, b mensaje}}` → `NE/<paso>` (el registro lleva `ev`). En `to`/`cc` también va `g:<id>` (grupo). Sin `NE` de un paso = lo de siempre (`mlDef`: usuarios con «Recibe el informe», borrador para revisar en rec/emp/emb).
+- Limpieza: `ncClean`, `ngClean`, `neClean` (en `WN` y `cleanST` → `mlCleanAll`). Al borrar un contacto o grupo, `mlDrop` lo quita de los pasos y grupos.
+
+## v1.50.0 · Varios PDF por correo, archivo en Gmail y «Correos enviados»
+- `ST.NE[paso].p = ['rec','temp',…]` — los PDF marcados del paso (tipos de `MLPK`; sin `p` = `MLPD`). `m` acepta también `'off'` (Apagado).
+- `ST.NE.arch = {e correo, on}` → registro `NE/arch`: el archivo en Gmail (copia oculta de cada correo). Sin él = `conectandoensenada@gmail.com` prendido (`MLARCH0`).
+- **Registro de correos en `ST.O`** (la misma lista de los informes de cierre, por maquila; registros `O/<u>`). Un renglón por correo, sin el mensaje ni los PDF (viven en Gmail):
+  `{u, ev /* paso */, t, by, subject, to:[correos], cc:[correos], body:'', ar /* copia al archivo */, fs:[nombres de los PDF], pk:['k|arg' para volver a hacer los PDF], rf:['l:<lote>','o:<orden>','e:<P.u>'], ok:1|0, er?, mm? /* se mandó desde el correo propio */, x? /* «ya no hace falta» */}`.
+  `rf` decide en qué lote y orden sale («Correos enviados»). Los informes de cierre (sin `ev`) no cambian.
+- Limpieza: `mlOX` (en `WN.O` y `cleanST`); `cleanST` guarda hasta 2000 renglones de `O` (antes 200). Sin cambios en la base: Encargado de piso ya podía escribir `O/`.

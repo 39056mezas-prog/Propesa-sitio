@@ -1,0 +1,139 @@
+# PRODUCTO.md · El negocio y lo que hace la plataforma
+
+## 1. La empresa
+
+**PROPESA** (Proveedor del Pescador S.A. de C.V.), Ensenada, Baja California. Compra langosta roja viva a cooperativas, la guarda en tanques (almacenaje húmedo) y la exporta por avión a China y Singapur.
+
+**Objetivo de la plataforma:** seguir cada lote desde que entra hasta que se envía y se calcula su mortalidad. Quien vea la pantalla debe entender **dónde está, qué sigue y qué falta**.
+
+**Quién la usa:** personal de piso en tablet (varias tablets capturan), el Administrador en computadora o tablet, y gente que solo consulta en computadora o celular. Hay internet casi siempre.
+
+## 2. El flujo (decidido por el usuario; no se cambia sin permiso)
+
+**Recepción → Órdenes → Empaque → Embarque**
+
+(v1.42.0: «Entrada» se llama **Recepción** y se registra por tinas; palabras en `docs/DICCIONARIO.md`.)
+
+**Mortalidad final va aparte** (decidido por el usuario el 16/oct/2026): no es un paso del flujo; se calcula sola con el conteo final de cada lote y las vivas al llegar de cada envío, y se revisa cuando se necesite (menú → «Revisión»).
+
+| # | Paso | Qué se hace | Quién | Ruta interna |
+|---|---|---|---|---|
+| 1 | **Recepción** | Por tinas (v1.42.0): fecha, hora inicial y final, proveedor, especie, lote (lo propone la app). En cada tina (30 por tanque: T1 = 1–30 … T6 = 151–180) su peso exacto y su talla; una tina = un lote y una talla. Aparte, sin tina: muerta (se regresa al proveedor), débil, rechazo y despatada. Temperatura del agua de cada tanque usado y del producto (mínima y máxima). PDF: formato de recepción | Admin y Encargado de piso | `recepcion`, `rtin`, `lote:<lote>` |
+| 2 | **Órdenes** | Pedido de un empaque: ETD → ciudad destino → consignatario → cliente final → cajas. Una orden sin cajas empacadas se puede eliminar (v1.8.3). Después de crearla se puede cambiar su fecha y, por línea, el cliente final y las cajas (no menos de las ya empacadas; no con el embarque cerrado) (v1.8.8) | Admin | `ordenes`, `orden:<id>` |
+| 3 | **Empaque** | Se cuentan las langostas de cada caja al empacar: lote, piezas vivas, categoría. La caja se numera ahí | Admin y piso | `empaque`, `empacar:<orden>.<línea>` |
+| 4 | **Embarque** | Junta una o varias órdenes con mismo destino y consignatario. Plan de carga del camión, tallas, peso bruto, cierre del empaque e informe | Admin | `embarques`, `emb:<índice>` |
+| — | **Mortalidad final** (aparte, no es paso) | Se calcula sola con el conteo final por lote (kg) y las langostas vivas al llegar; se revisa cuando se necesite | Captura admin y piso; cierra admin | `cierre` |
+
+Además: **Panel** (`inicio`), **Temperatura** (`temperatura`), **Administración** (`admin`), **Buscar** (`buscar:<texto>`) y **Modo piso** (`piso`, `pemp`, `rtin`).
+
+> **Hecho clave (corregido por el usuario):** en los tanques las cajas **no se numeran ni se cuentan**. Del lote solo se conocen los **kilos por talla**. Las piezas por caja se cuentan **al empacar cada pedido**.
+
+## 3. Glosario
+
+| Término | Significado |
+|---|---|
+| **Lote** | Una entrada de producto. Código tipo `WLRCO170926` = `WLR` (langosta roja) + proveedor (`CO` Cooperativa/SCPP Ensenada, `EM` Emancipación, `LE` Leyes de Reforma) + fecha `ddmmyy`. *Inferido de los PDFs; confirmar.* |
+| **Tallas (g)** | 491-610, 611-850, 851-1220, 1221-UP. En papel también: 0-650, 651-850, 851-1250, 1251-UP. Interno: `S`, etiquetas `SL`. |
+| **Hielera** | Desde la v1.9.0 la app dice **hielera** (antes «caja»). En el tanque sí se habla de cajas («Kg por caja en tanque»). Una hielera = **16 kg netos** (`KGN`) y **19.6 kg brutos** (`KGB` = 1.4 hielera + 1.5 gel + 16 producto + 0.7 caja de cartón), igual en la orden y en el embarque. |
+| **Categoría** | La **talla** de la caja, por color (`RC`): Blanco 491-610 · Rojo 611-850 · Verde 851-1220 · Amarillo 1221-UP (v1.5.0). |
+| **Consignatario** | A quién se factura en destino. Lista oficial de 7 (`CONS`). |
+| **Cliente final** | Código de 3 letras: HXH, ZSM, LHD, RSK, HSF, HYG, HJX, ZYX, LMD, MXH (`CLI0`). Una orden a PVG se reparte entre varios. |
+| **Consignación / embarque** | Grupo orden(es) + ciudad + consignatario. Nombre tipo `PVG · YISHUNHAI · 12/10 + 13/10`. |
+| **ETD** | Fecha de empaque/salida de la orden. |
+| **Ciudades** | PVG Shanghái · HKG Hong Kong · XMN Xiamen · SZX Shenzhen · CAN Guangzhou · SIN Singapur (`PORTS`). |
+| **Etapas del lote** | En tanque → Con cajas empacadas → Lote cerrado (`STG`). |
+
+### Consignatarios oficiales (`CONS`)
+
+| Clave | Razón social | Ciudades |
+|---|---|---|
+| YISHUNHAI | Shenzhen Yishunhai Trading Co., Ltd | PVG, SZX, HKG |
+| XIAMEN COASTAL | Xiamen Coastal Seafood Supply Chain Co., Ltd | XMN |
+| CHAOZHIXIN | Shanghai Chaozhixin Industrial Co., Ltd. | PVG |
+| TIAN CHENG | Shanghai Tian Cheng Supply Chain Management Ltd | PVG |
+| XINBANG | Guangzhou Xinbang Freight Forwarding Co., Ltd | CAN |
+| SEAFOOD ORIGIN | Seafood Origin Pte Ltd | SIN |
+| YANTAI | Yantai Bajiaowan Marine Technology Limited Company | todas |
+
+Direcciones, contactos y USCI completos: `index.html` (`CONS`) y `docs/referencias/lista_de_consignatarios.pdf`.
+
+## 4. Reglas de negocio implementadas
+
+- **Avisos de la entrada (v1.20.0):** en rojo, en el lote y en Entrada, si la fecha no cuadra con la del código del lote (WLR + clave + ddmmyy) o la hora es de madrugada (00:00–04:59). El Administrador corrige o toca «Está bien así».
+- **Salida incompleta (v1.20.0):** si al cerrar un embarque no se pudo descontar todo del tanque (lote sin entrada, cerrado o sin kilos), queda como pendiente del embarque; «Volver a descontar del tanque» después de corregir.
+- **Varias maquilas en una orden (v1.25.0):** al empacar se pueden usar lotes de otra maquila; al cerrar, sus kg salen del tanque de esa maquila. Los camiones juntan los embarques abiertos de todas las maquilas. El Panel general tiene el mapa de tanques con todas.
+- **Maquilas (v1.19.0):** PROPESA, Abel, David y Luis Arce (desde la v1.40.0 fuera del programa: se dan de alta a mano en la base, sin pestaña en Administración). Cada una con sus lotes, órdenes, empaque, embarques, informes y notas; no se mezclan y el mismo código de lote puede repetirse. Se cambia tocando el logo (en otra maquila, su nombre va en lugar del logo). El Administrador entra al **Panel general** (todas juntas, con tabla de tanques por maquila). Compartido: usuarios, proveedores, especies, consignatarios, destinos, pesos y temperatura de tanques. Los compradores (Cliente) solo ven PROPESA.
+- **Tallas por maquila (v1.19.0):** nombre, rango, color (tape y categoría de la hielera), nombre del color e inglés; se agregan y se ocultan; desde la v1.40.0 una talla que nunca se usó se puede eliminar. De inicio: Chica 491-610 Blanco, Mediana 611-850 Rojo, Grande 851-1220 Verde, Jumbo 1221-UP Amarillo y **Despatada (Gris)**, que se guarda, se empaca y se vende.
+- **Salidas que no son embarque (v1.19.0):** para congelar, basura, a recuperación, débil (con nota o folio). Restan del tanque; la mortalidad del lote ya no las cuenta.
+- **Hojas para imprimir (v1.19.0):** PDF de Recepción, Envíos, Existencia, Congelación, Precio de compra y Balance, con las fórmulas del Excel de Martha (Kg total = suma de tallas sin despatada; envío = hieleras × kg de producto; cajas = kg ÷ 16 o ÷ 15; balance = recibido + despatada − envíos − congelación − basura − recuperación − débil, contra la existencia física).
+
+- **Existencia por lote** = suma de movimientos (`L`, en gramos). La entrada crea un movimiento `RECEPCION` por talla. **Empacar una hielera NO descuenta kilos.** **Al cerrar el embarque (v1.13.0)** la app registra sola una «Salida a embarque» por lote y talla (talla = categoría de la hielera; kg = kg de producto de su orden), sin dejar el lote en negativo y sin tocar lotes cerrados o sin entrada; **reabrir** el embarque la quita. Los movimientos manuales siguen para correcciones: **ya no hay que registrar a mano la salida de cada embarque** (contaría doble).
+- **Proveedor (v1.11.0):** se elige de la lista de Administración → Proveedores (solo el Administrador la cambia: nombre oficial, clave del lote, RFC, permiso de pesca, ocultar). Con proveedor y fecha la app propone el lote WLR + clave + ddmmyy (+ B, C… si ya existe).
+- **Especie (v1.18.0):** cada entrada elige su especie de la lista de Administración → Especies (solo el Administrador la cambia: nombre, nombre en inglés para compradores, ocultar). De inicio solo Langosta Roja; los lotes de antes son Langosta Roja. El tablero de tanques y la pantalla de compradores separan kilos por especie. **Cada orden lleva su especie (v1.20.0)**: se elige al crearla (solo si hay más de una especie), al empacar solo salen los lotes de esa especie y lo pedido resta de esa especie en la pantalla de compradores. La Hoja de empaque (Formato 06) toma la especie de los lotes empacados.
+- **Lote sin entrada (v1.11.0):** desde Empaque, Administrador y Encargado de piso pueden empacar de un lote que no tiene entrada (lote, proveedor, tanque). Sale «Sin entrada · Completar ›» hasta que se capture su entrada; mientras, no cuenta en el tablero de tanques ni en la mortalidad.
+- **Kg total de entrada** = suma de las 4 tallas (solo lectura). **Desperdicio** es informativo; no resta existencia.
+- **Peso de la caja (v1.8.7):** no se pesa en el piso; se usa un estándar único (hielera vacía 1.4 + gel 1.5 + producto 16 + caja de cartón 0.7 = 19.6 kg brutos, 16 kg netos) que solo el Administrador cambia en Embarque → «Peso del embarque» → «Editar pesos» (desde la v1.13.3; antes en Administración). Peso del embarque = hieleras × estándar; los embarques cerrados conservan el peso con el que se cerraron.
+- **Lote:** al crearlo son obligatorios fecha, hora, proveedor, tanque, lote, temperatura del tanque (20–110 °F), temperatura del producto, kg por caja en tanque y kg de desperdicio (0 si no hubo) — decidido por el usuario el 15/oct/2026 (v1.8.2); el lote no se repite; al menos una talla con kilos. Editar un lote viejo no obliga a llenar los datos nuevos. ID interno `R-0121` con contador que solo crece (`ST.RN`).
+- **Orden:** neto = cajas × 16 kg; bruto = cajas × 19.6 kg. Una línea no admite más cajas empacadas que las pedidas. No se elimina una línea con cajas. No se agregan líneas a un destino cuyo embarque está cerrado.
+- **Consignación:** una por (orden + ciudad + consignatario); varias órdenes pueden unirse en un embarque («Unir», «Agregar otra orden», «Separar»). Hieleras = suma de cajas de sus órdenes. Peso bruto = hieleras × (1.4 hielera + 1.5 gel + 16 producto + 0.7 cartón) = **19.6 kg/hielera**.
+- **Orden (v1.10.0):** un destino por orden; por cada consignatario: total de hieleras, hieleras por talla (Chica B · Mediana R · Grande V · Jumbo A), kg de producto (15 o 16), tarimas y cajas de cartón. Peso bruto = hieleras × (hielera 1.4 + gel 1.5) + tarimas × 9.9 + hieleras × producto + cajas de cartón × caja (kg en Embarque → «Editar pesos»). Las tallas deben sumar el total. Sin clientes finales (las órdenes viejas conservan los suyos). Al empacar, las tallas empacadas se comparan con las pedidas (aviso rojo). **El consignatario de una línea se puede cambiar aunque ya tenga hieleras empacadas (v1.29.0):** las hieleras se van al embarque del nuevo; no a uno que ya está en la orden ni si un embarque está cerrado. El destino (ciudad) no se cambia.
+- **Tanques (v1.10.0):** el tablero muestra, por talla, las hieleras de 15 kg que hay (kg de la talla ÷ 15) y los kg sueltos.
+- **Temperatura (v1.10.0):** control interno; fecha, hora, termómetro flotante, superficie del agua, interna del producto. **Rangos internos (v1.25.0, 29/oct/2026, sacados del Excel):** agua (flotante, superficie y °F de tanque de la entrada) Óptimo ≤57 · Normal 57.1–60 · Advertencia 60.1–62 · Alerta 62.1–64 · Crítico >64; producto (interna y °F de producto de la entrada) Óptimo ≤60 · Normal 60.1–63 · Advertencia 63.1–66 · Alerta 66.1–68 · Crítico >68. Rojo = Alerta o Crítico; ámbar = Advertencia. La tabla de la industria (40–45 óptimo … >66 letal) queda como referencia. PDF de monitoreo.
+- **Hoja de empaque · Formato 06 (v1.9.0):** una por orden (`o.f`). La app llena fecha, especie, destino, consignatarios, lotes, peso bruto y hieleras por talla; propone tanques de origen y tanque y temperatura (última lectura de agua). Se capturan placas, chofer, teléfono, temperatura del producto, quién realizó, evaluación S/NS/N/D/N/A y observaciones. Hora inicial sola con la primera hielera; hora final, quién realizó y evaluación al terminar la última. Faltantes en rojo con «Completar ›»; cerrar el embarque con la hoja incompleta pregunta. Sale en los PDF y en el correo. Admin y piso la llenan; con el embarque cerrado ya no se cambia.
+- **Indicaciones para la carga (v1.9.0):** texto por embarque (`p.ob`, ej. «ECHAR 2 TARIMAS VACÍAS Y FLEJE») en recuadro amarillo grande: embarque, plan del camión, inicio de Modo piso, hoja de la orden, PDF del embarque y del camión, correo de cierre.
+- **Plan de carga:** 10 celdas (2 × 5) de 15/20/20/25/25 hieleras = **210** por camión; se llena desde la cabina; avisa si se excede. Solo cuenta embarques abiertos. **Desde la v1.14.0 hay varios camiones:** cada consignación abierta va en uno («Pasar a» → otro camión o «Camión nuevo», solo admin) y las hieleras se mueven a mano («Mover hieleras»: tocar dos celdas las intercambia; con una elegida se escribe cuántas de cada consignación lleva, para dividir una tarima). Avisa si faltan o sobran hieleras o si una celda pasa su capacidad. Las consignaciones cerradas salen en «Embarques cerrados».
+- **Alertas de embarque (rojo):** peso bruto ≠ formato; tallas ≠ hieleras (también con tallas en 0); cajas sin cantidad o categoría; sin cajas empacadas. Cada una con «Resolver ›».
+- **Cerrar empaque (solo admin):** requiere al menos una caja; guarda el informe en Administración → Informes de cierre (con PDF). Después, las cajas de ese destino quedan bloqueadas.
+- **Orden (v1.25.0):** las tallas de la orden no incluyen Despatada (es merma); al empacar sí existe la categoría Gris.
+- **Mortalidad por lote:** esperado (existencia **sin despatada**, v1.25.0) − conteo final, y su %. **Merma** = mortalidad + despatada recibida (patas rotas), en % de lo recibido. El conteo final no puede exceder lo esperado. **Por envío:** enviadas − vivas al llegar.
+- **Temperatura:** lecturas por tanque en °F (agua, superficie, producto), 20–110, al menos un valor; se guarda quién capturó. Rango visto en papel: almacenamiento 57.7–62.2 °F, transporte 48–49 °F.
+- **Lo más viejo primero (v1.27.0):** al empacar, los lotes salen del más viejo al más nuevo y el más viejo ya viene elegido (se puede cambiar). Cada proveedor puede tener **días máximos en tanque** (vacío = sin límite): el lote que los pasa sale en rojo y antes que los demás.
+- **Máximo 35 langostas por hielera (v1.27.0).**
+- **Hieleras grises = extra (v1.28.0):** la gris (despatada) no se elige en el teclado de Empaque; se agrega en «Hieleras grises · extra». Va con el cliente (packing list, peso del embarque, sale del tanque) pero no cuenta para las hieleras pedidas.
+- **Orden variada (v1.27.0):** si el cliente no pide tallas fijas, «Repartir tallas: lo más viejo primero» las calcula con lo más viejo de los tanques.
+- **Fotos y notas:** hasta 6 fotos por nota en Entrada, lote, Embarque, Mortalidad final y Temperatura. En Empaque solo notas. Cada quien borra sus notas; el admin, cualquiera.
+- **PDF de cada paso:** Entrada, Órdenes, Empaque, Embarque y Mortalidad final. El mismo PDF se descarga y se manda por correo.
+
+## 5. Roles y permisos
+
+**Solo inventario (v1.30.0, antes Consulta y Cliente):** el Administrador le elige maquilas; ve en español el disponible por talla de esas maquilas, sumado y sin nombre de maquila, y lo recibido en 7 días. Nada más (lo bloquea la base: `20261101_solo_inventario.sql`). Lo de abajo es la historia.
+
+**Cliente (comprador), v1.13.0:** cuenta para compradores de fuera (China). Entra a una sola pantalla en inglés: **Available stock** (por talla: kg en tanques de lotes abiertos − lo pedido en órdenes cuyo embarque no se ha cerrado; hieleras de 15 kg aproximadas; lo pedido sin tallas como «Reserved» que solo resta del total) y **Received in the last 7 days** (kg recibidos por día y talla). No ve proveedor, lote, tanque, temperatura, órdenes ni nada más, y la base no se lo entrega. Se calcula en `dispCalc()` y viaja como el registro `D/disp`.
+
+Función `can(a)`: el admin puede todo; el Encargado de piso puede `box`, `fin` y `ent`.
+
+| Acción | Administrador | Encargado de piso | Consulta |
+|---|---|---|---|
+| Ver todo | Sí | Sí | Sí |
+| Registrar entradas (`ent`) | Sí | Sí | No |
+| Editar o eliminar lotes, crear órdenes (`lot`) | Sí | No | No |
+| Movimientos manuales de inventario y reversas (`mv`) | Sí | No | No |
+| Empacar cajas (`box`) y capturar conteos/temperaturas (`fin`) | Sí | Sí | No |
+| Fotos y notas | Sí | Sí | No |
+| Cerrar empaques y lotes | Sí | No | No |
+| Usuarios, respaldo, borrar datos | Sí | No | No |
+
+- Al entrar, el **admin va a la vista completa** y el **Encargado de piso a Modo piso**. El admin puede prender Modo piso con el interruptor.
+- No se puede dejar la plataforma sin Administrador.
+- **Primer uso:** sin usuarios, la app pide crear el Administrador (Configuración inicial) o restaurar un respaldo.
+
+## 6. Documentos en papel que reemplaza (en `docs/referencias/`)
+
+| PDF | Contenido | En la plataforma |
+|---|---|---|
+| `PROPESA_Control_Recepcion.pdf` | Control de recepción y tallas | **Sí**: formulario de Entrada |
+| `orden_a_proveedor.pdf` | ETD, cliente, destino, cajas, pesos | **Sí**: Órdenes |
+| `lista_de_consignatarios.pdf` | 7 consignatarios con dirección, contacto, USCI | **Sí**: `CONS` |
+| `packing_list.pdf` (Formato 06) | Hieleras con piezas vivas y cliente; encabezado con placas, chofer, horas, temperaturas, peso bruto | **Sí** (v1.9.0): hoja de empaque en cada orden |
+| `tabla_logistica.pdf` | Cajas y kg neto por cliente y destino | Parcial |
+| `control_de_pesos_y_tallas.pdf` (Formato 02) | Pesos por tina (1–180), totales por talla, cajas completas/incompletas | **No** |
+| `Recepcion_Variedades.pdf` | Control de envío: color de tape, lotes mezclados, % mortalidad, temperatura de arribo | **No** (solo se calcula mortalidad) |
+
+Los nombres chinos de los clientes vienen ocultos (■■■) en los PDFs.
+
+## 7. Límites de la versión 1.0
+
+- Cada equipo guarda sus propios datos (navegador). Se pasan con respaldo `.json`. La base compartida (Supabase) está preparada, no conectada.
+- El inicio de sesión se valida en el mismo equipo (SHA-256); no es seguridad de servidor.
+- «Enviar por correo» usa el menú de compartir o `mailto:`; no hay servidor de correo.
+- El logo es una recreación en SVG.
