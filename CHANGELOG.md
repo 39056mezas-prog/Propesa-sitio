@@ -1,5 +1,16 @@
 # Cambios
 
+## 1.58.3 · 21 de noviembre de 2026 · Volver a enviar un correo
+
+Pedido del usuario: «no hay botón para reenviar ni nada de eso».
+
+- En «Correos enviados» (lote y orden) cada renglón ahora se puede volver a mandar:
+  - **✔ Enviado** (o «se mandó desde el correo de quien lo envió») → **«Volver a enviar ›»**. Abre el borrador otra vez con los mismos PDF (hechos de nuevo con los datos de hoy), las mismas personas y el mismo asunto. Deja el renglón de antes como estaba y anota uno nuevo, para que se vea el historial.
+  - **No se envió · ya no hacía falta** → **«Mandarlo ahora»**. Antes ese renglón se quedaba sin salida. Reusa su mismo renglón.
+  - **⚠ No se envió** sigue igual: «Reintentar» y «Ya no hace falta».
+- Solo lo ven el Administrador y el Encargado de piso, como el resto de los correos.
+- Prueba nueva: `pruebas/reenviar_t.py`.
+
 ## 1.58.2 · 21 de noviembre de 2026 · «Lo que no entra a tinas» más visual
 
 Pedido del usuario: la sección parecía texto suelto, sin flecha para abrirla.
