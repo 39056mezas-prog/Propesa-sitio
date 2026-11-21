@@ -1,47 +1,151 @@
-# PROPESA · Sitio público (propesa.org)
+# PROPESA — Procesos y Operaciones
 
-Página de inicio de Proveedor del Pescador S.A. de C.V. HTML y CSS sin librerías ni servicios externos, publicada en Vercel.
+Sitio estático de una sola página (HTML + CSS + JavaScript, sin dependencias ni paso de compilación).
+Incluye recepción de lotes, captura de hieleras, hoja de empaque (Formato 06), embarques, cierre y mortalidad, temperatura, y fotos y notas por sección.
 
-## Archivos
+## Contenido
 
-| Archivo | Qué es |
+| Archivo | Para qué sirve |
 |---|---|
-| `index.html` | La página completa |
-| `estilos.css` | Estilos |
-| `sitio.js` | Vuelve sólida la cabecera al bajar y cierra el menú del teléfono |
-| `globo.js` | El globo 3D de la portada: se gira arrastrando, con límite, rutas y luces. Lo único que se mueve encima es el avioncito de la ruta Ensenada → China continental (desde el 7/nov/2026 no hay barco, langosta, garabato ni avión grande). Los nombres están quietos desde el inicio. Si el equipo no tiene 3D o lo pierde (teléfono con poca memoria), se queda la foto fija `img/globo-inicio.jpg` con las rutas encima. Con «Reducir movimiento» no se anima y solo se dibuja cuando algo cambia Fuera de la pantalla deja de dibujar (no gasta batería mientras se lee el resto de la página). |
-| `img/tierra-textura.jpg` | Imagen satelital de la Tierra para el globo (NASA Blue Marble, dominio público), 2048×1024, 284 KB. No la agrande: con 4096 px el teléfono se quedaba sin memoria y quitaba el 3D |
-| `img/globo-inicio.jpg` | Foto fija del globo para equipos sin gráficos 3D |
-| `img/mapa-baja-1600.jpg`, `img/mapa-baja-2400.jpg` | Mapa satelital de Baja California (mitad derecha de Contacto), en dos tamaños: el navegador baja el de 2400 px solo en pantallas de alta resolución. Hecho el 21/nov/2026 con mosaicos de NASA Blue Marble (relieve y batimetría, 500 m por píxel, dominio público) de @freetiler/nasa-bluemarble, nivel 8, en proyección Mercator. Sustituye a `mapa-satelital.jpg`, que salía borroso porque era un recorte ampliado de la textura chica del globo. Si se cambia la imagen, use otro nombre de archivo: `img/` se guarda 30 días en caché. El punto de Ensenada y el nombre «Baja California» (girado sobre la península) están en el SVG de `index.html`, en las mismas medidas 1600×900 |
-| `fuentes/` | Letra Archivo (licencia OFL, incluida) |
-| `img/logo-propesa*.svg` | Logo PROPESA (el mismo de la app «PROPESA — Procesos y Operaciones»), a color y en blanco |
-| `img/og-image.jpg` | Vista previa al compartir el link (WhatsApp, Facebook…): 1200×630, menos de 300 KB. Si se cambia, subir `?v=` en las etiquetas `og:image`/`twitter:image` de `index.html` |
-| `favicon.svg` | La langosta blanca de la app |
-| `.vercelignore` | Lista de lo único que Vercel publica. README, DESIGN y PRODUCT se quedan en GitHub sin verse en la página. Si agregas un archivo o carpeta que la página usa, agrégalo ahí con «!» |
-| `robots.txt`, `sitemap.xml` | Le dicen a Google que puede leer la página y dónde está |
-| `favicon-48/192/512.png` | El ícono en PNG (Google lo enseña junto al nombre en los resultados; 48 px o más) |
-| `vercel.json` | Encabezados de seguridad y caché |
+| `index.html` | Toda la aplicación |
+| `manifest.webmanifest`, `favicon.svg`, `icon-192/512/1024.png`, `apple-touch-icon.png` | Ícono (langosta blanca sobre azul marino, la misma del botón Entrada) y opción "Agregar a pantalla de inicio" en tablet |
+| `og-image.png` | Imagen que sale al compartir el link (logo de PROPESA, 1200×630). Las etiquetas `og:`/`twitter:` de `index.html` llevan la dirección completa `https://app.propesa.org/` (desde la v1.31.4; `propesa.org` es el sitio público): si cambia el dominio, cámbiala ahí y en `pruebas/vista_previa_t.py` |
+| `.vercelignore` | Lista de lo único que Vercel publica (la app). Si agregas una imagen o archivo que la app usa, agrégalo ahí con «!» o no se publica |
+| `vercel.json` | Configuración de Vercel (encabezados de seguridad: CSP, HSTS, Permissions-Policy; caché; y la tarea diaria que mantiene despierta la base) |
+| `api/despierta.js` | La tarea diaria: una consulta pequeña a la base para que el plan gratis de Supabase no la pause (ver *Fin de temporada*) |
+| `supabase/` | Base compartida: `migrations/` (lo que está aplicado en el proyecto `propesa_bc`, incluido el espacio de archivos «fotos»), `functions/usuarios` (alta de usuarios) y `schema.sql` (primer esquema) |
+| `pruebas/` | Pruebas automáticas (ver «Pruebas») |
+| `CHANGELOG.md` | Cambios por versión |
+| `CLAUDE.md` · `AGENTS.md` | Instrucciones para asistentes de IA (empiezan aquí) |
+| `docs/` | Contexto completo: producto, UX, marca, arquitectura, datos, decisiones, roadmap, pruebas, seguridad, Supabase, flujo de trabajo, historial y documentos de referencia |
+| `.claude/settings.json` | Activa el plugin agent-skills en Claude Code |
 
-## Al publicar un cambio
+## Probar en tu computadora
 
-Sube el número `?v=` de `estilos.css`, `sitio.js` y `globo.js` en `index.html` (ahora `v=11`) para que los teléfonos no se queden con la versión vieja.
+Abre `index.html` en el navegador, o levanta un servidor local:
 
-## Antes de publicar
+```bash
+python3 -m http.server 8080
+# abre http://localhost:8080
+```
 
-1. **Fotos.** Ya están puestas: 3 fotos en `fotos/`: langosta sobre el tanque (Almacenaje), empaque (Maquila) y caja de langostas (Producto), cada una de fondo de una sección completa. Para cambiar una, reemplace el archivo con otro del mismo nombre: foto limpia, sin fondo revuelto, de al menos 1080 px de ancho, JPG de menos de 300 KB.
-2. **Logo.** Es el mismo logo de la app: `img/logo-propesa-blanco.svg` (blanco, en la cabecera y el pie); `img/logo-propesa.svg` es la versión a color, por si se necesita. Si algún día llega el archivo oficial, reemplace esos dos archivos con el mismo nombre.
-3. **Iniciar sesión.** El botón apunta a `https://app.propesa.org/#entrar` (el `#entrar` hace que la app abra el formulario sola, sin otro clic). Si la app queda en otra dirección, cámbiela en `index.html` (dos lugares: cabecera y pie).
+## Base compartida
 
-## Publicar
+Desde la v1.4.0 los datos viven en Supabase (proyecto `propesa_bc`): **todos los equipos y todas las cuentas ven lo mismo**, y cada equipo guarda una copia para seguir trabajando si se va el internet (lo sube solo al regresar). Detalle en `docs/SUPABASE.md`.
 
-Repositorio aparte en GitHub → Vercel → *Framework: Other*, sin comando de compilación. Cuando el sitio quede en `propesa.org`, la app («PROPESA — Procesos y Operaciones») debe pasar antes a `app.propesa.org` (tablets instaladas, `og:url`, CSP, direcciones de Supabase Auth y la tarea `/api/despierta`).
+## Primer uso
 
-## Lo que la página no muestra (a propósito)
+Cada persona entra con el **correo y la contraseña** que le dio el Administrador. Si la base todavía no tiene ninguna cuenta, la app abre **Configuración inicial** para crear el Administrador (nombre, correo y contraseña de mínimo 8 caracteres; las contraseñas muy fáciles se rechazan). Después, en **Administración**, el Administrador da de alta a los demás usuarios con su rol:
 
-Domicilio, R.F.C., ciudades o aeropuertos de destino, fechas de temporada, nombres de proveedores o clientes, precios, y nada de la app interna.
+| Rol | Puede |
+|---|---|
+| Administrador | Todo, incluidos usuarios, respaldo y borrado de datos |
+| Encargado de piso | Entra directo a Modo piso: empacar, registrar entradas, cerrar embarques, conteo final |
+| Consulta | Solo ver |
+| Cliente (comprador) | Solo ve, en inglés, los kilos disponibles por talla y lo recibido en la semana. La base no le deja ver nada más |
 
-## Cómo sale en Google (9/nov/2026)
-- **Nombre del sitio** (la línea de arriba, junto al ícono): «PROPESA» (JSON-LD `WebSite.name` y `og:site_name`).
-- **Título:** «Envíos Internacionales y Almacenamiento de Langosta Viva | Proveedor del Pescador S.A. de C.V.» (`<title>`).
-- **Descripción:** empieza con «Proveedor del Pescador S.A. de C.V. (PROPESA): somos una empresa de Ensenada…» (`meta description`).
-- Google decide cuándo actualizar: después de publicar, en Google Search Console usa «Inspección de URL» → «Solicitar indexación» para `https://propesa.org/`. Puede tardar días.
+Para cargar un respaldo `.json`: Administración → **Restaurar respaldo** (reemplaza los datos de todos los equipos; los usuarios no cambian).
+
+## Subir a GitHub
+
+```bash
+cd propesa-procesos-y-operaciones
+git init
+git add .
+git commit -m "PROPESA — Procesos y Operaciones"
+git branch -M main
+git remote add origin https://github.com/TU-USUARIO/propesa-procesos-y-operaciones.git
+git push -u origin main
+```
+
+(Crea antes el repositorio vacío en github.com.)
+
+## Desplegar en Vercel
+
+1. Entra a https://vercel.com/new e importa el repositorio de GitHub.
+2. Configuración: **Framework Preset: Other**, sin Build Command, sin Output Directory (se sirve la raíz).
+3. Pulsa **Deploy**. Cada `git push` a `main` vuelve a desplegar automáticamente.
+
+También con la CLI: `npx vercel --prod` dentro de la carpeta.
+
+## Flujo de la plataforma
+
+**Entrada → Órdenes → Empaque → Embarque**
+
+1. **Entrada:** se captura el formato de recepción (fecha, hora, proveedor, tanque, temperaturas, lote (se escribe en mayúsculas solo), kg por caja en tanque, kg por talla, kg total y kg de desperdicio). Aquí no se cuentan ni se numeran cajas.
+2. **Órdenes:** un destino por orden; por cada consignatario (lista oficial, constante `CONS`): total de hieleras, hieleras por talla, kg de producto (15 o 16), tarimas y cajas de cartón; la app calcula el peso bruto. Se usan 16 kg netos y 19.6 kg brutos por hielera (`KGN` y `KGB`; el bruto es la suma de hielera, gel, producto y caja).
+3. **Empaque:** las langostas se cuentan al empacar cada pedido. Aparece una fila por cada hielera que falta (piezas vivas + categoría + lote) y se guardan todas a la vez; las filas en blanco no se guardan. Cada hielera se numera sola. Aquí solo hay notas, sin fotos. Cada orden lleva su **hoja de empaque (Formato 06)**: la hora inicial se pone sola con la primera hielera; al terminar la última se piden hora final, quién realizó y la evaluación S/NS/N/D/N/A; placas, chofer, teléfono y temperaturas se capturan en la misma hoja. Todo sale en el PDF y en el correo.
+4. **Embarque:** cada embarque tiene «Indicaciones para la carga» (ej. «ECHAR 2 TARIMAS VACÍAS Y FLEJE»), que salen en grande en el embarque, el plan del camión, Modo piso y los PDF. Cada orden crea su embarque, pero varias órdenes con el mismo destino y consignatario se pueden juntar en uno solo (botón «Unir» en la orden, o «Agregar otra orden» en el embarque; «Separar» las divide). Las hieleras se suman, se revisan peso y tallas y se cierra el empaque.
+
+**Mortalidad final (aparte, no es un paso):** el sistema calcula la pérdida con el conteo final por lote y las langostas vivas al llegar. Se revisa en el menú → «Revisión», cuando se necesite.
+
+## Modo piso
+
+Pantalla con botones grandes para el personal de piso (entra solo con el rol *Encargado de piso*; el Administrador lo prende y apaga con el interruptor estilo iOS «Modo piso», en el menú y en el encabezado). Tocar el logo regresa al inicio en cualquier modo. Cuatro botones: **Empacar hieleras**, **Registrar entrada**, **Cerrar embarque**, **Conteo final**.
+- *Empacar:* cliente → lote (se salta si solo hay uno) → una tarjeta grande por cada caja del cliente (piezas + ROJO / VERDE / BLANCO). Cada caja **se guarda sola** al tener piezas y categoría y se queda en gris con ✔ en su lugar; se corrige ahí mismo o se quita con «Quitar». «Poner a todas las vacías» aplica una categoría de un toque.
+- En Órdenes y Empaque, el aviso rojo «X de Y cajas empacadas» es un botón que lleva directo al cliente al que le faltan cajas.
+- *Registrar entrada:* hoja con una fila por lote (proveedor, tanque, lote, kg por talla); «+ Agregar entrada» para más filas, «Más» para temperaturas, kg por caja, desperdicio, fecha y hora, y «Guardar entradas» guarda todas las filas completas (las que tienen errores se quedan marcadas en rojo).
+- *Cerrar embarque* (paso a paso, v1.21.0): embarque → revisar hieleras y lo que va de cada lote → pendientes → cerrar (solo el Administrador; el piso ve «Avísale al Administrador»).
+- *Conteo final* (paso a paso, v1.21.0): lote → kg contados → confirmar con la mortalidad → guardar.
+- Colores de talla: 491-610 Blanco · 611-850 Rojo · 851-1220 Verde · 1221-UP Amarillo.
+
+## Ajustes
+
+**Barra superior:** botón **Ajustes** y círculo con la inicial (también en Modo piso). El círculo abre **Administración** (solo admin) y **Cerrar sesión**. En Ajustes: tema **Oscuro / Claro** y **Tamaño del texto** con deslizador de 3 tamaños: Normal, Grande y Muy grande (se guardan en este equipo; `propesa-theme`, `propesa-fs`). Especificación en `SPEC.md`; pruebas en `pruebas/` (`python3 -m http.server 8765` y luego `python3 -I pruebas/ajustes_t.py`, `python3 -I pruebas/menu_t.py` y `python3 -I pruebas/e2e.py`).
+
+## Colores
+
+Los colores están en variables CSS al inicio de `index.html` (`:root`). Marca: `--brand-navy #0B1D59` (barra lateral), `--brand-blue #087DBA` (acciones principales, botón activo), `--brand-cyan #16A6D1` (acentos pequeños: indicador del menú activo, barras de avance, foco). Tema oscuro: fondo `#111827`, tarjetas `#1C2638`, bordes `#2D3B50`, texto `#F1F5F9` / `#A9B7CA`. Estados: verde (completo), ámbar (precaución), rojo (error o pendiente real). El logo no se tocó.
+
+## PDF de cada paso
+
+En Entrada, Órdenes, Empaque, Embarque y Mortalidad final hay una barra con **Descargar PDF** y **Enviar por correo**. El PDF se genera dentro de la app (sin librerías ni internet) con el logo de PROPESA; es el mismo archivo que se descarga y el que se manda por correo. En tablet y celular, *Enviar por correo* abre el menú de compartir con el PDF adjunto; en computadora descarga el PDF y abre el correo para adjuntarlo. Cada cierre de empaque queda en **Administración → Informes de cierre**, con su PDF para descargar o enviar por correo.
+
+## Temperatura
+
+Bitácora real de lecturas por tanque (agua, superficie y producto en °F, 20–110). Guarda fecha, hora y quién capturó; muestra los últimos 7 días con opción de ver todo. El Administrador puede eliminar una lectura equivocada.
+
+## Datos y respaldo
+
+- Los datos se guardan en la **base compartida** (Supabase, proyecto `propesa_bc`): todos los equipos y cuentas ven lo mismo. Cada equipo guarda una copia y sigue funcionando sin internet; lo que se capture se sube solo cuando regresa la conexión.
+- Administración → *Datos y respaldo*: muestra la última actualización con la base y si hay cambios pendientes. **Descarga un respaldo `.json` de vez en cuando.** «Restaurar respaldo» reemplaza los datos de **todos** los equipos (el archivo se revisa y limpia antes; los usuarios no cambian).
+- **La app no tiene botón para borrar todos los datos** (decisión del usuario, v1.8.5). Si algún día hace falta, se hace a mano desde Supabase: ver `docs/SUPABASE.md` §9.
+- Lo que cada tablet tenía antes de la v1.4.0 no se mezcla: Administración → *Datos viejos de este equipo* para descargarlo o borrarlo.
+- Para las pruebas existe un modo local (`http://localhost:8765/index.html?modo=local`) que no usa la base.
+
+## Fin de temporada (veda)
+
+La langosta roja se pesca del 16 de septiembre al 15 de febrero. En la veda casi nadie abre la app, y el plan gratis de Supabase **pausa la base después de 7 días sin uso**.
+
+**Desde la v1.8.0 esto se cuida solo:** Vercel llama todos los días a `api/despierta.js` (configurado en `vercel.json`, sección `crons`), que hace una consulta pequeña a la base. Con eso la base nunca pasa 7 días sin uso. No hay que hacer nada.
+
+- **Para comprobar que corre:** Vercel → el proyecto → *Settings* → *Cron Jobs* (debe aparecer `/api/despierta`, una vez al día) y *View Logs*: cada día una llamada con respuesta 200. Una respuesta 502 quiere decir que la base no contestó.
+- **Opcional:** en Vercel → *Settings* → *Environment Variables*, agrega `CRON_SECRET` con una clave larga cualquiera. Así solo Vercel puede usar esa dirección. Sin ella también funciona (la consulta no lee ni cambia datos).
+- **Si algún día la base sí se pausa** (por ejemplo, si se quitó la tarea): Supabase manda un correo. Entra al panel (proyecto `propesa_bc`) y dale **Resume project**; no dejes pasar más de 90 días.
+- **Equipos:** funciona desde un **iPad mini 2 / iOS 12** (v1.37.0). En un iPad viejo la planta 3D empieza apagada y sin efectos de vidrio; lo demás se ve igual. Un iPad mini 1 (iOS 9) no sirve.
+- **Tablets con Safari:** si una tablet pasa más de 7 días sin abrir la app, Safari puede borrar su copia. Los datos no se pierden (viven en la base), salvo lo que esa tablet no haya subido. Antes del 15 de febrero, revisa que Administración diga «Todo lo de este equipo ya está arriba».
+- **Si cambian a su propia base de datos**, actualicen la dirección y la llave de `api/despierta.js` (las mismas de `index.html`), o quiten la tarea si su base no se pausa.
+
+## Pruebas
+
+Requieren Python 3 con Playwright y Chromium.
+
+```bash
+sh pruebas/correr_todo.sh      # 73 grupos; termina con «TODO BIEN»
+```
+
+Extras: `python3 -I pruebas/rendimiento_t.py` (un año de datos, tiempos de pantalla) y `node pruebas/accesibilidad.mjs pruebas/datos/backup.json` (Lighthouse en 15 pantallas, en modo local; requiere `npm i lighthouse puppeteer-core`).
+
+## Actualizar y volver atrás
+
+1. Antes de publicar una versión nueva, descarga un respaldo desde Administración.
+2. `git push` a `main` → Vercel despliega solo. `index.html` se sirve con `Cache-Control: no-cache`, así que los equipos toman la versión nueva al recargar.
+3. Si algo sale mal: en Vercel → *Deployments* → la versión anterior → **Promote to Production** (vuelta atrás inmediata). Los datos no se tocan: viven en la base compartida.
+
+## Límites conocidos
+
+- Los permisos finos por rol (quién edita órdenes, cierra lotes…) los aplica la pantalla; la base solo distingue «puede escribir» (Administrador, Piso) de «solo ver» (Consulta). Ver `docs/SEGURIDAD.md`.
+- Las fotos viven en el espacio de archivos «fotos» de Supabase (plan gratis: 1 GB, unas 10,000 fotos). El respaldo `.json` lleva las notas pero no las fotos.
+- «Enviar por correo» usa el menú de compartir del equipo o abre tu programa de correo; no hay servidor de correo.
+- El logo es una recreación en SVG; para el archivo oficial, reemplaza la función `LG` en `index.html`.
+- La base usa el plan gratis de Supabase: ver *Fin de temporada (veda)*.
